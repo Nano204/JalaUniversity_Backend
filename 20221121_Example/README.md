@@ -2,7 +2,7 @@
 
 1. Create a folder.
 2. Open folder on terminal.
-3. Start project with 'npm init' and name the project.
+3. Start project with `npm init` and name the project.
 4. Create install typescript and generate tsconfig file:
 
 ```shell
