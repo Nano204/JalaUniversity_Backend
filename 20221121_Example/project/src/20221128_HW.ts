@@ -72,6 +72,59 @@ car.displayDetails.apply(secondCar, ["Vivian", "Delgado"]); // Vivian, this is y
 
 car.displayDetails.call(secondCar, "Vivian", "Delgado"); // Vivian, this is your car: HU54321 Nissan
 
-// Note that when using the apply() function the parameter must be placed in an array. 
-// This methods are similar but slightly different to bind.The principal difference between this 2 
-// methods and bind methos is that bind creates a new function while apply and call excecute the function. 
+// Note that when using the apply() function the parameter must be placed in an array.
+// This methods are similar but slightly different to bind.The principal difference between this 2
+// methods and bind methos is that bind creates a new function while apply and call excecute the function.
+
+// USING WHEN THIS IS LOST
+
+// When passing object methods as callbacks, for instance to setTimeout, there’s a known problem: "losing this".
+// Once a method is passed somewhere separately from the object – this is lost.
+
+// setTimeout(car.displayDetails("Vivian", "Delgado"), 1000);
+
+// The simplest solution is to use a wrapping function
+setTimeout(() => car.displayDetails("Vivian", "Delgado"), 1000);
+
+// Functions provide a built-in method bind, call & apply that allows to fix this.
+
+const displayCarDetails = car.displayDetails.bind(car, "Vivian", "Delgado");
+
+displayCarDetails();
+
+// Other uses examples: https://stackoverflow.com/questions/30072609/real-work-examples-of-bind-in-javascript
+
+const logger = {
+  name: "myLogger",
+  log: function (txt: string) {
+    console.log(this.name + ":", txt);
+  },
+  // readThis: function (argument: string) {
+  //   console.log(this, argument);
+  // },
+};
+
+logger.log("Hello there"); // myLogger: Hello there
+
+const messages = ["first message", "second message", "third message"];
+messages.forEach(function (msg) {
+  logger.log(msg);
+});
+
+// messages.forEach(logger.log); //Error
+messages.forEach(logger.log.bind(logger));
+// messages.forEach(logger.readThis.bind(logger));
+
+// LAST EXAMPLE
+
+// Importante in TypeScript: When creating a function that calls "this" it will need the context type to be declared
+// so it would be a good pratice to have a class or a instace of the object before creating the fuinction
+const getName = function (this: any) {
+  return console.log(this.name);
+};
+
+// logger.getName(); // Error
+const loggerName = getName.bind(logger);
+loggerName();
+
+getName.call(logger);
