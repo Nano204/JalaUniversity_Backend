@@ -19,13 +19,13 @@ tsc --init
 ```json
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "es2020",
     "module": "commonjs",
     "moduleResolution": "node",
     "rootDir": "src",
     "sourceMap": true,
     "outDir": "dist",
-    "lib": ["ES2016"],
+    "lib": ["ES2020"],
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -101,3 +101,29 @@ app.listen(port, () => {
 
 10. Use `npm start` to test working server.
 11. Use the debugger tool of VSCode to test debugging is working.
+12. Install VScode ESlint extension.
+
+13. Install and configure ESlint.
+
+```
+ ╰─λ npm init @eslint/config
+✔ How would you like to use ESLint? · To check syntax, find problems, and enforce code style
+✔ What type of modules does your project use? · commonjs
+✔ Which framework does your project use? · none
+✔ Does your project use TypeScript? · Yes
+✔ Where does your code run? · node
+✔ How would you like to define a style for your project? (Press <space> to select, <a> to toggle all, <i> to invert selection) · Node
+✔ What format do you want your config file to be in? · JSON
+✔ What style of indentation do you use? · spaces
+✔ What quotes do you use for strings? · double
+✔ What line endings do you use? · unix
+✔ Do you require semicolons? · Yes
+The config that you've selected requires the following dependencies:
+
+@typescript-eslint/eslint-plugin@latest @typescript-eslint/parser@latest
+✔ Would you like to install them now? · Yes
+✔ Which package manager do you want to use? · npm
+Installing @typescript-eslint/eslint-plugin@latest, @typescript-eslint/parser@latest
+```
+
+14. Validate Prettier and ESLint configurations to make them compatible.
