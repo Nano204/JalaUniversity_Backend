@@ -34,16 +34,16 @@ function* fibonacci() {
   }
 }
 
-const test = fibonacci();
-console.log(test.next());
-console.log(test.next());
-console.log(test.next());
-console.log(test.next());
-console.log(test.next());
-console.log(test.next());
-console.log(test.next());
-console.log(test.next());
-console.log(test.next());
+const fibonacci_test = fibonacci();
+console.log(fibonacci_test.next());
+console.log(fibonacci_test.next());
+console.log(fibonacci_test.next());
+console.log(fibonacci_test.next());
+console.log(fibonacci_test.next());
+console.log(fibonacci_test.next());
+console.log(fibonacci_test.next());
+console.log(fibonacci_test.next());
+console.log(fibonacci_test.next());
 
 class Reservation {
   destination: string | undefined;
