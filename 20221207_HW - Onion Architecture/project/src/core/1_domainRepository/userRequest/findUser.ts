@@ -1,3 +1,3 @@
-export class DeleteLocationRepositoryRequest {
+export class FindUserRepositoryRequest {
   constructor(public readonly id: number) {}
 }
