@@ -1,5 +1,5 @@
-import { IUser } from "../0_domain/entities/IUser";
-import { DBDeletion } from "../0_domain/types/types";
+import { IUser } from "../domain/entities/IUser";
+import { DBDeletion } from "../domain/types/types";
 import { AddUserRepositoryRequest } from "./userRequest/addUser";
 import { DeleteUserRepositoryRequest } from "./userRequest/deleteUser";
 import { FindUserRepositoryRequest } from "./userRequest/findUser";

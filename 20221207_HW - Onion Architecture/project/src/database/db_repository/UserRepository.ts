@@ -1,12 +1,12 @@
-import { AppDataSource } from "../db/DBConnection"; // Revisar
+import { AppDataSource } from "../DBConnection"; // Revisar
 import { User } from "../db_entities/User"; //Revisar
 import { injectable } from "inversify";
-import { DBDeletion } from "../../core/0_domain/types/types";
-import { AddUserRepositoryRequest } from "../../core/1_domainRepository/userRequest/addUser";
-import { UpdateUserRepositoryRequest } from "../../core/1_domainRepository/userRequest/updateUser";
-import { FindUserRepositoryRequest } from "../../core/1_domainRepository/userRequest/findUser";
-import { DeleteUserRepositoryRequest } from "../../core/1_domainRepository/userRequest/deleteUser";
-import { IUserRepository } from "../../core/1_domainRepository/IUserRepository";
+import { DBDeletion } from "../../domain/types/types";
+import { AddUserRepositoryRequest } from "../../domainRepository/userRequest/addUser";
+import { UpdateUserRepositoryRequest } from "../../domainRepository/userRequest/updateUser";
+import { FindUserRepositoryRequest } from "../../domainRepository/userRequest/findUser";
+import { DeleteUserRepositoryRequest } from "../../domainRepository/userRequest/deleteUser";
+import { IUserRepository } from "../../domainRepository/IUserRepository";
 
 @injectable()
 export default class UserRepository implements IUserRepository {
