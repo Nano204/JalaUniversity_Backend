@@ -1,13 +1,13 @@
-import container from "./inversify/config/ioc_config";
-import SERVICE_IDENTIFIER from "./inversify/constants/identifiers";
-import { AppDataSource } from "./database/db/DBConnection";
+import container from "./dependencies/config/ioc_config";
+import SERVICE_IDENTIFIER from "./dependencies/constants/identifiers";
+import { AppDataSource } from "./database/DBConnection";
+import { IUserRepository } from "./domainRepository/IUserRepository";
 import { jhon, julian, leonardo, sandra } from "./examples/people";
-import { IUserRepository } from "./core/1_domainRepository/IUserRepository";
 
 class Test_inversify {
   async initializeDB(): Promise<void> {
     await AppDataSource.initialize();
-    const testUsers = container.get<IUserRepository>(SERVICE_IDENTIFIER.USER_REPOSITORY);
+    const testUsers = container.get<IUserRepository>(SERVICE_IDENTIFIER.USER_SERVICE);
 
     console.log(await testUsers.addUser(jhon));
     console.log(await testUsers.addUser(julian));
@@ -23,22 +23,3 @@ class Test_inversify {
 }
 
 new Test_inversify().initializeDB();
-
-// class Test1 {
-//   async initializeDB() {
-//     await AppDataSource.initialize();
-//     const locationService = new LocationService();
-//     console.log(await locationService.addLocation(earth));
-//     console.log(await locationService.addLocation(abandago));
-//     console.log(await locationService.addLocation(worldender));
-//     console.log(await locationService.addLocation(anatomy));
-
-//     console.log(await locationService.findLocation({ id: 1 }));
-//     console.log(await locationService.findLocation({ id: 2 }));
-
-//     console.log(await locationService.deleteLocation({ id: 4 }));
-//     await AppDataSource.dropDatabase();
-//   }
-// }
-
-// new Test1().initializeDB();
