@@ -1,18 +1,27 @@
 import container from "./dependencies/config/ioc_config";
 import SERVICE_IDENTIFIER from "./dependencies/constants/identifiers";
 import { AppDataSource } from "./database/DBConnection";
-import { IUserRepository } from "./domainRepository/IUserRepository";
-import { jhon, julian, leonardo, sandra } from "./examples/people";
+// import { IUserRepository } from "./domainRepository/IUserRepository";
+// import { jhon, julian, leonardo, sandra } from "./examples/people";
 import { IBoardRepository } from "./domainRepository/IBoardRepository";
+import BoardUnitOfWorkService from "./appService/BoardUnitOfWorkService";
+import SnakeUnitOfWorkService from "./appService/SnakeUnitOfWorkService";
+import { ISnakeRepository } from "./domainRepository/ISnakeRepository";
 
 class Test_inversify {
   async initializeDB(): Promise<void> {
     await AppDataSource.initialize();
-    const testBoard = container.get<IBoardRepository>(
+    const createdBoard = new BoardUnitOfWorkService().createBoard(4);
+    const createdSnake = new SnakeUnitOfWorkService().createSnake();
+    const testBoardContainer = container.get<IBoardRepository>(
       SERVICE_IDENTIFIER.BOARD_SERVICE
     );
+    const testSnakeContainer = container.get<ISnakeRepository>(
+      SERVICE_IDENTIFIER.SNAKE_SERVICE
+    );
 
-    console.log(await testBoard.createBoard(10));
+    console.log(await testBoardContainer.saveBoard(createdBoard));
+    console.log(await testSnakeContainer.createSnake(createdSnake));
     await AppDataSource.dropDatabase();
   }
 }

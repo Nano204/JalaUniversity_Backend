@@ -1,12 +1,10 @@
 import { Position } from "../types/types";
-import IBoard from "./IBoard";
 import { INode } from "./INode";
-import { IUser } from "./IUser";
 
-export interface ISnake {
-  readonly id: number;
-  readonly head: Position;
-  readonly nodes: INode[];
-  readonly board: IBoard;
-  readonly owner: IUser;
+export class ISnake {
+  id!: number;
+  head!: Position;
+  nodes!: INode[];
+  // boardID!: number;
+  // ownerID!: number;
 }

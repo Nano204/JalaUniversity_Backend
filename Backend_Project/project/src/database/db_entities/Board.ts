@@ -1,16 +1,13 @@
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
-import IBoard from "../../domain/entities/IBoard";
 // import { ISnake } from "../../domain/entities/ISnake";
 
 @Entity()
-export class Board implements IBoard {
+export class Board {
   @PrimaryGeneratedColumn()
   public readonly id!: number;
   @Column()
-  public readonly sideLenght!: number;
+  public coordinates!: string;
   // @Column()
   // public readonly snakes!: ISnake[];
-  @Column()
-  public coordinates!: string;
   // public coordinates!: boolean[][];
 }

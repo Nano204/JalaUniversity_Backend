@@ -1,20 +1,17 @@
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
-import IBoard from "../../domain/entities/IBoard";
-import { INode } from "../../domain/entities/INode";
-import { ISnake } from "../../domain/entities/ISnake";
-import { IUser } from "../../domain/entities/IUser";
-import { Position } from "../../domain/types/types";
+// import IBoard from "../../domain/entities/IBoard";
+// import { IUser } from "../../domain/entities/IUser";
 
 @Entity()
-export class Snake implements ISnake {
+export class Snake {
   @PrimaryGeneratedColumn()
   public readonly id!: number;
   @Column()
-  public readonly head!: Position;
-  @Column()
-  public readonly nodes!: INode[];
-  @Column()
-  public readonly board!: IBoard;
-  @Column()
-  public readonly owner!: IUser;
+  public head!: string;
+  @Column({ nullable: true })
+  public nodes!: string;
+  // @Column()
+  // public readonly board!: IBoard;
+  // @Column()
+  // public readonly owner!: IUser;
 }
