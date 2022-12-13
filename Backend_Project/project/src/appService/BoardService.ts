@@ -13,9 +13,8 @@ export default class BoardService implements IBoardRepository {
   ) {
     this.boardRepository = boardRepository;
   }
-
-  async createBoard(sideLenght: number): Promise<IBoard> {
-    return await this.boardRepository.createBoard(sideLenght);
+  async saveBoard(board: IBoard): Promise<IBoard> {
+    return await this.boardRepository.saveBoard(board);
   }
   async findBoard(id: number): Promise<IBoard | null> {
     return await this.boardRepository.findBoard(id);
