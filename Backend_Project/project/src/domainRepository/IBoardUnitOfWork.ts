@@ -1,5 +1,5 @@
 import IBoard from "../domain/entities/IBoard";
 
 export interface IBoardUnitOfWork {
-  createBoard(size: number): IBoard;
+  create(size: number): IBoard;
 }

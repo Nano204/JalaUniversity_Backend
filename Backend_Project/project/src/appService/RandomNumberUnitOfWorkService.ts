@@ -1,17 +1,10 @@
+let seed = 42;
 export default class RandomNumberSupportService {
   randomNumber(maxValue: number): number {
     const currentTime = new Date();
-    const [month, day, hour, minutes, seconds, milliseconds] = [
-      currentTime.getMonth(),
-      currentTime.getDay(),
-      currentTime.getHours(),
-      currentTime.getMinutes(),
-      currentTime.getSeconds(),
-      currentTime.getMilliseconds(),
-    ];
-    const randomNumber = (month * day * hour * minutes * seconds * milliseconds)
-      .toString()
-      .slice(0, 6);
-    return Number(randomNumber) % maxValue;
+    const result = (seed * seed).toString().padStart(4, "0").slice(1, 3);
+    seed = parseInt(result);
+    const randNum = (seed + currentTime.getMilliseconds()) % maxValue;
+    return randNum;
   }
 }

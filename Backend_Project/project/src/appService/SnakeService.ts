@@ -13,16 +13,16 @@ export default class SnakeService implements ISnakeRepository {
   ) {
     this.snakeRepository = snakeRepository;
   }
-  async createSnake(snake: ISnake): Promise<ISnake> {
-    return await this.snakeRepository.createSnake(snake);
+  async save(snake: ISnake): Promise<ISnake> {
+    return await this.snakeRepository.save(snake);
   }
-  async findSnake(id: number): Promise<ISnake | null> {
-    return await this.snakeRepository.findSnake(id);
+  async find(id: number): Promise<ISnake | null> {
+    return await this.snakeRepository.find(id);
   }
-  async deleteSnake(id: number): Promise<DBDeletion> {
-    return await this.snakeRepository.deleteSnake(id);
+  async delete(id: number): Promise<DBDeletion> {
+    return await this.snakeRepository.delete(id);
   }
-  async getAllSnakes(): Promise<ISnake[]> {
-    return await this.snakeRepository.getAllSnakes();
+  async getAll(): Promise<ISnake[]> {
+    return await this.snakeRepository.getAll();
   }
 }

@@ -1,5 +1,6 @@
 import { Position } from "../types/types";
 
-export interface IFood {
-  readonly position: Position;
+export class IFood {
+  public id!: number;
+  public position!: Position;
 }

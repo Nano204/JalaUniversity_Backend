@@ -13,16 +13,16 @@ export default class BoardService implements IBoardRepository {
   ) {
     this.boardRepository = boardRepository;
   }
-  async saveBoard(board: IBoard): Promise<IBoard> {
-    return await this.boardRepository.saveBoard(board);
+  async save(board: IBoard): Promise<IBoard> {
+    return await this.boardRepository.save(board);
   }
-  async findBoard(id: number): Promise<IBoard | null> {
-    return await this.boardRepository.findBoard(id);
+  async find(id: number): Promise<IBoard | null> {
+    return await this.boardRepository.find(id);
   }
-  async deleteBoard(id: number): Promise<DBDeletion> {
-    return await this.boardRepository.deleteBoard(id);
+  async delete(id: number): Promise<DBDeletion> {
+    return await this.boardRepository.delete(id);
   }
-  async getAllBoards(): Promise<IBoard[]> {
-    return await this.boardRepository.getAllBoards();
+  async getAll(): Promise<IBoard[]> {
+    return await this.boardRepository.getAll();
   }
 }

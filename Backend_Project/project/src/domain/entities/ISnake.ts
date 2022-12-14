@@ -5,6 +5,6 @@ export class ISnake {
   id!: number;
   head!: Position;
   nodes!: INode[];
-  // boardID!: number;
-  // ownerID!: number;
+  gameId!: number;
+  ownerId!: number;
 }

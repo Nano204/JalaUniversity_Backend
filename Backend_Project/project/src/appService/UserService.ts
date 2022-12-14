@@ -14,19 +14,19 @@ export default class UserService implements IUserRepository {
     this.userRepository = userRepository;
   }
 
-  async addUser(user: IUser): Promise<IUser> {
-    return await this.userRepository.addUser(user);
+  async add(user: IUser): Promise<IUser> {
+    return await this.userRepository.add(user);
   }
-  async updateUser(user: IUser): Promise<IUser> {
-    return await this.userRepository.updateUser(user);
+  async update(user: IUser): Promise<IUser> {
+    return await this.userRepository.update(user);
   }
-  async findUser(id: number): Promise<IUser | null> {
-    return await this.userRepository.findUser(id);
+  async find(id: number): Promise<IUser | null> {
+    return await this.userRepository.find(id);
   }
-  async deleteUser(id: number): Promise<DBDeletion> {
-    return await this.userRepository.deleteUser(id);
+  async delete(id: number): Promise<DBDeletion> {
+    return await this.userRepository.delete(id);
   }
-  async getAllUsers(): Promise<IUser[]> {
-    return await this.userRepository.getAllUsers();
+  async getAll(): Promise<IUser[]> {
+    return await this.userRepository.getAll();
   }
 }

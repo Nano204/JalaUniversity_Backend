@@ -3,12 +3,11 @@ import { ISnakeUnitOfWork } from "../domainRepository/ISnakeUnitOfWork";
 import RandomNumberSupportService from "./RandomNumberUnitOfWorkService";
 
 export default class SnakeUnitOfWorkService implements ISnakeUnitOfWork {
-  createSnake(): ISnake {
+  create(boundaryLimit: number): ISnake {
     const snake = new ISnake();
-    const randNum = new RandomNumberSupportService().randomNumber;
     snake.head = {
-      x: randNum(10),
-      y: randNum(10),
+      x: new RandomNumberSupportService().randomNumber(boundaryLimit),
+      y: new RandomNumberSupportService().randomNumber(boundaryLimit),
     };
     snake.nodes = [];
     return snake;
