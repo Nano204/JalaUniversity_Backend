@@ -10,6 +10,12 @@ import BoardRepository from "../../database/db_repository/BoardRepository";
 import { ISnakeRepository } from "../../domainRepository/ISnakeRepository";
 import SnakeService from "../../appService/SnakeService";
 import { SnakeRepository } from "../../database/db_repository/SnakeRepository";
+import { FoodRepository } from "../../database/db_repository/FoodRepository";
+import { IFoodRepository } from "../../domainRepository/IFoodRepository";
+import { IGameRepository } from "../../domainRepository/IGameRepository";
+import GameService from "../../appService/GameService";
+import FoodService from "../../appService/FoodService";
+import { GameRepository } from "../../database/db_repository/GameRepository";
 
 const container = new Container();
 
@@ -23,5 +29,9 @@ container.bind<ISnakeRepository>(SERVICE_IDENTIFIER.SNAKE_SERVICE).to(SnakeServi
 container
   .bind<ISnakeRepository>(SERVICE_IDENTIFIER.SNAKE_DB_REPOSITORY)
   .to(SnakeRepository);
+container.bind<IFoodRepository>(SERVICE_IDENTIFIER.FOOD_DB_REPOSITORY).to(FoodRepository);
+container.bind<IFoodRepository>(SERVICE_IDENTIFIER.FOOD_SERVICE).to(FoodService);
+container.bind<IGameRepository>(SERVICE_IDENTIFIER.GAME_DB_REPOSITORY).to(GameRepository);
+container.bind<IGameRepository>(SERVICE_IDENTIFIER.GAME_SERVICE).to(GameService);
 
 export default container;

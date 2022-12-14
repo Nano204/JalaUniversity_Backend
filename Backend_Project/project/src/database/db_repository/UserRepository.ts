@@ -7,28 +7,28 @@ import { IUser } from "../../domain/entities/IUser";
 
 @injectable()
 export default class UserRepository implements IUserRepository {
-  async addUser(user: IUser): Promise<User> {
+  async add(user: IUser): Promise<User> {
     const repository = AppDataSource.getRepository(User);
     return await repository.save(user);
   }
 
-  async updateUser(user: IUser): Promise<User> {
+  async update(user: IUser): Promise<User> {
     const repository = AppDataSource.getRepository(User);
     return await repository.save(user);
   }
 
-  async findUser(id: number): Promise<User | null> {
+  async find(id: number): Promise<User | null> {
     const repository = AppDataSource.getRepository(User);
     return await repository.findOneBy({ id });
   }
 
-  async deleteUser(id: number): Promise<DBDeletion> {
+  async delete(id: number): Promise<DBDeletion> {
     const repository = AppDataSource.getRepository(User);
     const deleted = await repository.delete({ id });
     return { affected: deleted.affected };
   }
 
-  async getAllUsers(): Promise<User[]> {
+  async getAll(): Promise<User[]> {
     const repository = AppDataSource.getRepository(User);
     return await repository.find();
   }
