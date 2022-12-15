@@ -1,21 +1,21 @@
 import "reflect-metadata";
 import { Container } from "inversify";
 import SERVICE_IDENTIFIER from "../constants/identifiers";
-import UserRepository from "../../database/db_repository/UserRepository";
-import { IUserRepository } from "../../domainRepository/IUserRepository";
-import UserService from "../../appService/UserService";
-import BoardService from "../../appService/BoardService";
-import { IBoardRepository } from "../../domainRepository/IBoardRepository";
-import BoardRepository from "../../database/db_repository/BoardRepository";
-import { ISnakeRepository } from "../../domainRepository/ISnakeRepository";
-import SnakeService from "../../appService/SnakeService";
-import { SnakeRepository } from "../../database/db_repository/SnakeRepository";
-import { FoodRepository } from "../../database/db_repository/FoodRepository";
-import { IFoodRepository } from "../../domainRepository/IFoodRepository";
-import { IGameRepository } from "../../domainRepository/IGameRepository";
-import GameService from "../../appService/GameService";
-import FoodService from "../../appService/FoodService";
-import { GameRepository } from "../../database/db_repository/GameRepository";
+import UserRepository from "../../database/user/UserRepository";
+import { IUserRepository } from "../../domainRepository/user/IUserRepository";
+import UserService from "../../appService/user/UserService";
+import BoardService from "../../appService/board/BoardService";
+import { IBoardRepository } from "../../domainRepository/board/IBoardRepository";
+import BoardRepository from "../../database/board/BoardRepository";
+import { ISnakeRepository } from "../../domainRepository/snake/ISnakeRepository";
+import SnakeService from "../../appService/snake/SnakeService";
+import { SnakeRepository } from "../../database/snake/SnakeRepository";
+import { FoodRepository } from "../../database/food/FoodRepository";
+import { IFoodRepository } from "../../domainRepository/food/IFoodRepository";
+import { IGameRepository } from "../../domainRepository/game/IGameRepository";
+import GameService from "../../appService/game/GameService";
+import FoodService from "../../appService/food/FoodService";
+import { GameRepository } from "../../database/game/GameRepository";
 
 const container = new Container();
 

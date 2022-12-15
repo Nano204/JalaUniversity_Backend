@@ -1,10 +1,10 @@
 import express from "express";
 const server = express();
 
-import gameRouter from "./gameRouter";
-import dbRouter from "./dataAccessRouter";
+import gameRouter from "./controllers/gameRouter";
+
+server.use(express.json());
 server.use("/game", gameRouter);
-server.use("/db", dbRouter);
 
 server.get("/", (req, res) => {
   res.send("The server is mounted");

@@ -1,9 +1,9 @@
 import { DataSource } from "typeorm";
-import { Board } from "./db_entities/Board";
-import { Food } from "./db_entities/Food";
-import { Game } from "./db_entities/Game";
-import { Snake } from "./db_entities/Snake";
-import { User } from "./db_entities/User";
+import { Board } from "./board/Board";
+import { Food } from "./food/Food";
+import { Game } from "./game/Game";
+import { Snake } from "./snake/Snake";
+import { User } from "./user/User";
 
 export const AppDataSource = new DataSource({
   type: "sqlite",
