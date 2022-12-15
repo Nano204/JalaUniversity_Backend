@@ -1,59 +1,45 @@
+import GameUnitOfWorkService from "./appService/game/GameUnitOfWorkService";
+import UserUnitOfWorkService from "./appService/user/UserUnitOfWorkService";
+import { AppDataSource } from "./database/DBConnection";
 import container from "./dependencies/config/ioc_config";
 import SERVICE_IDENTIFIER from "./dependencies/constants/identifiers";
-import { AppDataSource } from "./database/DBConnection";
-// import { IUserRepository } from "./domainRepository/IUserRepository";
-// import { jhon, julian, leonardo, sandra } from "./examples/people";
-import { IBoardRepository } from "./domainRepository/IBoardRepository";
-import BoardUnitOfWorkService from "./appService/BoardUnitOfWorkService";
-import SnakeUnitOfWorkService from "./appService/SnakeUnitOfWorkService";
-import { ISnakeRepository } from "./domainRepository/ISnakeRepository";
-import GameUnitOfWorkService from "./appService/GameUnitOfWorkService";
-import FoodUnitOfWorkService from "./appService/FoodUnitOfWorkService";
-import { IFoodRepository } from "./domainRepository/IFoodRepository";
+import { IGameRepository } from "./domainRepository/game/IGameRepository";
+import { IUserRepository } from "./domainRepository/user/IUserRepository";
 
 class Test_inversify {
   async initializeDB(): Promise<void> {
     await AppDataSource.initialize();
-    const createdGame = await new GameUnitOfWorkService().createGame(10, [12, 15]);
-    console.log(createdGame);
-    const createdBoard = new BoardUnitOfWorkService().create(4);
-    const createdSnake = new SnakeUnitOfWorkService().create(10);
-    const createdFood = new FoodUnitOfWorkService().create();
-    const testBoardContainer = container.get<IBoardRepository>(
-      SERVICE_IDENTIFIER.BOARD_SERVICE
-    );
-    const testSnakeContainer = container.get<ISnakeRepository>(
-      SERVICE_IDENTIFIER.SNAKE_SERVICE
-    );
-    const testFoodContainer = container.get<IFoodRepository>(
-      SERVICE_IDENTIFIER.FOOD_SERVICE
-    );
 
-    console.log(await testBoardContainer.save(createdBoard));
-    console.log(await testSnakeContainer.save(createdSnake));
-    console.log(await testFoodContainer.save(createdFood));
-    await AppDataSource.dropDatabase();
+    ////Creating users testing
+    const player1 = new UserUnitOfWorkService().create("Nano", "Gomez");
+    const player2 = new UserUnitOfWorkService().create("Other", "Person");
+    const userRep = container.get<IUserRepository>(SERVICE_IDENTIFIER.USER_DB_REPOSITORY);
+    console.log(await userRep.add(player1));
+    console.log(await userRep.add(player2));
+
+    ////Creating game testing
+    const game = new GameUnitOfWorkService().create();
+    console.log(game);
+
+    ////Connect user with game in database
+    const gameRep = container.get<IGameRepository>(SERVICE_IDENTIFIER.GAME_DB_REPOSITORY);
+    console.log(await gameRep.add(game, [1, 2]));
+
+    // console.log(await testBoardContainer.save(createdBoard));
+    // const testSnakeContainer = container.get<ISnakeRepository>(
+    // console.log(createdGame);
+    // const createdBoard = new BoardUnitOfWorkService().create(4);
+    // const createdSnake = new SnakeUnitOfWorkService().create(10,10);
+    // const createdFood = new FoodUnitOfWorkService().create();
+    //   SERVICE_IDENTIFIER.SNAKE_SERVICE
+    // );
+    // const testFoodContainer = container.get<IFoodRepository>(
+    //   SERVICE_IDENTIFIER.FOOD_SERVICE
+    // );
+
+    // console.log(await testFoodContainer.save(createdFood));
+    // await AppDataSource.dropDatabase();
   }
 }
 
 new Test_inversify().initializeDB();
-
-// class Test_inversify {
-//   async initializeDB(): Promise<void> {
-//     await AppDataSource.initialize();
-//     const testUsers = container.get<IUserRepository>(SERVICE_IDENTIFIER.USER_SERVICE);
-
-//     console.log(await testUsers.addUser(jhon));
-//     console.log(await testUsers.addUser(julian));
-//     console.log(await testUsers.addUser(leonardo));
-//     console.log(await testUsers.addUser(sandra));
-
-//     console.log(await testUsers.findUser({ id: 1 }));
-//     console.log(await testUsers.findUser({ id: 2 }));
-
-//     console.log(await testUsers.deleteUser({ id: 4 }));
-//     await AppDataSource.dropDatabase();
-//   }
-// }
-
-// new Test_inversify().initializeDB();
