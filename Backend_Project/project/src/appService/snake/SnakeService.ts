@@ -1,28 +1,45 @@
 import { inject, injectable } from "inversify";
-import SERVICE_IDENTIFIER from "../../dependencies/constants/identifiers";
-import { ISnake } from "../../domain/entities/ISnake";
+import SERVICE_IDENTIFIER from "../../dependencies/identifiers";
+import { SnakeDomain } from "../../domain/entities/SnakeDomain";
 import { DBDeletion } from "../../domain/types/types";
-import { ISnakeRepository } from "../../domainRepository/snake/ISnakeRepository";
+import { SnakeRepositoryInterface } from "../../domainRepository/SnakeRepositoryInterface";
+import { SnakeServiceInterface } from "./SnakeServiceInterface";
+import RandomNumberSupportService from "../support/RandomNumberUnitOfWorkService";
 
+const randomNumber = new RandomNumberSupportService().randomNumber;
 @injectable()
-export default class SnakeService implements ISnakeRepository {
-  private snakeRepository: ISnakeRepository;
+export default class SnakeService implements SnakeServiceInterface {
+  private snakeRepository: SnakeRepositoryInterface;
 
   constructor(
-    @inject(SERVICE_IDENTIFIER.SNAKE_DB_REPOSITORY) snakeRepository: ISnakeRepository
+    @inject(SERVICE_IDENTIFIER.SNAKE_DB_REPOSITORY)
+      snakeRepository: SnakeRepositoryInterface
   ) {
     this.snakeRepository = snakeRepository;
   }
-  async save(snake: ISnake, ownerId: number, userId: number): Promise<ISnake> {
-    return await this.snakeRepository.save(snake, ownerId, userId);
+
+  async createNew(): Promise<SnakeDomain> {
+    const snake = new SnakeDomain();
+    const maxDirectionIndex = 3;
+    snake.direction = randomNumber(maxDirectionIndex);
+    snake.status = "Alive";
+    snake.length = 1;
+    return await this.snakeRepository.save(snake);
   }
-  async find(id: number): Promise<ISnake | null> {
-    return await this.snakeRepository.find(id);
+
+  async updateSnake(snake: SnakeDomain): Promise<SnakeDomain> {
+    return await this.snakeRepository.save(snake);
   }
-  async delete(id: number): Promise<DBDeletion> {
-    return await this.snakeRepository.delete(id);
+
+  async findSnake(id: number): Promise<SnakeDomain | null> {
+    return await this.snakeRepository.findById(id);
   }
-  async getAll(): Promise<ISnake[]> {
+
+  async deleteSnake(id: number): Promise<DBDeletion> {
+    return await this.snakeRepository.deleteById(id);
+  }
+
+  async findAllSnakes(): Promise<SnakeDomain[]> {
     return await this.snakeRepository.getAll();
   }
 }

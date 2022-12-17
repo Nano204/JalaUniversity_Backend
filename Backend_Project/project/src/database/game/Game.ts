@@ -1,4 +1,13 @@
-import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from "typeorm";
+import { Board } from "../board/Board";
 import { User } from "../user/User";
 
 @Entity()
@@ -9,8 +18,10 @@ export class Game {
   public speed!: number;
   @Column()
   public state!: string;
-  @ManyToMany(() => User)
+  @ManyToMany(() => User, (user) => user.games)
+  @JoinTable({ name: "games_users" })
   public users!: User[];
-  // @OneToOne(() => Board, (board) => board.gameId)
-  // public boardId!: number;
+  @OneToOne(() => Board, (board) => board.game, { cascade: true })
+  @JoinColumn()
+  public board!: Board;
 }

@@ -1,17 +1,22 @@
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { SnakeStatus } from "../../domain/types/types";
 
 @Entity()
 export class Snake {
   @PrimaryGeneratedColumn()
   public readonly id!: number;
-  @Column()
+  @Column({ nullable: true })
   public head!: string;
   @Column()
   public direction!: number;
   @Column({ nullable: true })
   public nodes!: string;
   @Column()
-  public gameId!: number;
+  public status!: SnakeStatus;
   @Column()
+  public length!: number;
+  @Column({ nullable: true })
+  public gameId!: number;
+  @Column({ nullable: true })
   public ownerId!: number;
 }
