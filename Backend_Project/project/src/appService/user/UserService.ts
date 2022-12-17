@@ -1,32 +1,36 @@
 import { inject, injectable } from "inversify";
-import { IUser } from "../../domain/entities/IUser";
+import { UserDomain } from "../../domain/entities/UserDomain";
 import { DBDeletion } from "../../domain/types/types";
-import { IUserRepository } from "../../domainRepository/user/IUserRepository";
-import SERVICE_IDENTIFIER from "../../dependencies/constants/identifiers";
+import { UserRepositoryInterface } from "../../domainRepository/UserRepositoryInterface";
+import SERVICE_IDENTIFIER from "../../dependencies/identifiers";
+import { UserServiceInterface } from "./UserServiceInterface";
 
 @injectable()
-export default class UserService implements IUserRepository {
-  private userRepository: IUserRepository;
+export default class UserService implements UserServiceInterface {
+  private userRepository: UserRepositoryInterface;
 
   constructor(
-    @inject(SERVICE_IDENTIFIER.USER_DB_REPOSITORY) userRepository: IUserRepository
+    @inject(SERVICE_IDENTIFIER.USER_DB_REPOSITORY) userRepository: UserRepositoryInterface
   ) {
     this.userRepository = userRepository;
   }
 
-  async add(user: IUser): Promise<IUser> {
-    return await this.userRepository.add(user);
+  async createNew(firstName: string, lastName: string): Promise<UserDomain> {
+    const user = new UserDomain();
+    user.firstName = firstName;
+    user.lastName = lastName;
+    return await this.userRepository.save(user);
   }
-  async update(user: IUser): Promise<IUser> {
-    return await this.userRepository.update(user);
+
+  async findUser(id: number): Promise<UserDomain | null> {
+    return await this.userRepository.findById(id);
   }
-  async find(id: number): Promise<IUser | null> {
-    return await this.userRepository.find(id);
+
+  async deleteUser(id: number): Promise<DBDeletion> {
+    return await this.userRepository.deleteById(id);
   }
-  async delete(id: number): Promise<DBDeletion> {
-    return await this.userRepository.delete(id);
-  }
-  async getAll(): Promise<IUser[]> {
-    return await this.userRepository.getAll();
+
+  async findAllUsers(): Promise<UserDomain[]> {
+    return await this.userRepository.findAll();
   }
 }

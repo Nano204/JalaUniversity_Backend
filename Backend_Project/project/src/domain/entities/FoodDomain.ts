@@ -1,6 +1,6 @@
 import { Position } from "../types/types";
 
-export class IFood {
+export class FoodDomain {
   public id!: number;
   public position!: Position;
 }

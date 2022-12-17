@@ -7,6 +7,6 @@ export class Board {
   public readonly id!: number;
   @Column()
   public coordinates!: string;
-  // @OneToOne(() => Game, (game) => game.boardId)
-  // public gameId!: number;
+  @OneToOne(() => Game, (game) => game.board)
+  public game!: Game;
 }

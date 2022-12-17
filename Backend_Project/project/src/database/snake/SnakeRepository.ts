@@ -1,30 +1,38 @@
 import { injectable } from "inversify";
-import { ISnake } from "../../domain/entities/ISnake";
+import { SnakeDomain } from "../../domain/entities/SnakeDomain";
 import { DBDeletion } from "../../domain/types/types";
-import { ISnakeRepository } from "../../domainRepository/snake/ISnakeRepository";
+import { SnakeRepositoryInterface } from "../../domainRepository/SnakeRepositoryInterface";
 import { AppDataSource } from "../DBConnection";
 import { Snake } from "./Snake";
 import { snakeMapper } from "./snakeMapper";
 
 @injectable()
-export class SnakeRepository implements ISnakeRepository {
-  async save(snake: ISnake): Promise<ISnake> {
+export class SnakeRepository implements SnakeRepositoryInterface {
+  async save(snake: SnakeDomain): Promise<SnakeDomain> {
     const repository = AppDataSource.getRepository(Snake);
     const dbSnake = snakeMapper.toDBEntity(snake);
-    const responseSnake = await repository.save(dbSnake);
+    let responseSnake;
+    if (snake.id) {
+      responseSnake = await repository.save({ ...dbSnake, id: snake.id });
+    } else {
+      responseSnake = await repository.save(dbSnake);
+    }
     return snakeMapper.toWorkUnit(responseSnake);
   }
-  async find(id: number): Promise<ISnake | null> {
+
+  async findById(id: number): Promise<SnakeDomain | null> {
     const repository = AppDataSource.getRepository(Snake);
     const responseSnake = await repository.findOneBy({ id });
     return responseSnake && snakeMapper.toWorkUnit(responseSnake);
   }
-  async delete(id: number): Promise<DBDeletion> {
+
+  async deleteById(id: number): Promise<DBDeletion> {
     const repository = AppDataSource.getRepository(Snake);
     const deleted = await repository.delete({ id });
     return { affected: deleted.affected };
   }
-  async getAll(): Promise<ISnake[]> {
+
+  async getAll(): Promise<SnakeDomain[]> {
     const repository = AppDataSource.getRepository(Snake);
     const responseSnakeArray = repository.find().then((boardsArray) => {
       return boardsArray.map((element) => {
