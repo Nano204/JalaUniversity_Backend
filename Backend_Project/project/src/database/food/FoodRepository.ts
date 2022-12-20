@@ -14,6 +14,7 @@ export class FoodRepository implements FoodRepositoryInterface {
     const responseBoard = await repository.save(dbBoard);
     return foodMapper.toWorkUnit(responseBoard);
   }
+  
   async findById(id: number): Promise<FoodDomain | null> {
     const repository = AppDataSource.getRepository(Food);
     const responseBoard = await repository.findOneBy({ id });

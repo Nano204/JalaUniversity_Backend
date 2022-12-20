@@ -32,7 +32,7 @@ export class SnakeRepository implements SnakeRepositoryInterface {
     return { affected: deleted.affected };
   }
 
-  async getAll(): Promise<SnakeDomain[]> {
+  async findAll(): Promise<SnakeDomain[]> {
     const repository = AppDataSource.getRepository(Snake);
     const responseSnakeArray = repository.find().then((boardsArray) => {
       return boardsArray.map((element) => {

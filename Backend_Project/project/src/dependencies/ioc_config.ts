@@ -17,6 +17,10 @@ import { UserServiceInterface } from "../appService/user/UserServiceInterface";
 import { BoardServiceInterface } from "../appService/board/BoardServiceInterface";
 import { SnakeServiceInterface } from "../appService/snake/SnakeServiceInterface";
 import { FoodServiceInterface } from "../appService/food/FoodServiceInterface";
+import GameService from "../appService/game/GameService";
+import { GameRepository } from "../database/game/GameRepository";
+import { GameRepositoryInterface } from "../domainRepository/GameRepositoryInterface";
+import { GameServiceInterface } from "../appService/game/GameServiceInterface";
 
 const container = new Container();
 
@@ -39,5 +43,10 @@ container
   .bind<FoodRepositoryInterface>(SERVICE_IDENTIFIER.FOOD_DB_REPOSITORY)
   .to(FoodRepository);
 container.bind<FoodServiceInterface>(SERVICE_IDENTIFIER.FOOD_SERVICE).to(FoodService);
+
+container
+  .bind<GameRepositoryInterface>(SERVICE_IDENTIFIER.GAME_DB_REPOSITORY)
+  .to(GameRepository);
+container.bind<GameServiceInterface>(SERVICE_IDENTIFIER.GAME_SERVICE).to(GameService);
 
 export default container;

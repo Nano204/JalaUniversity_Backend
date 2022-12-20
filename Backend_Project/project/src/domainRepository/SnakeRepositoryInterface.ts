@@ -5,5 +5,5 @@ export interface SnakeRepositoryInterface {
   save(snake: SnakeDomain): Promise<SnakeDomain>;
   findById(id: number): Promise<SnakeDomain | null>;
   deleteById(id: number): Promise<DBDeletion>;
-  getAll(): Promise<SnakeDomain[]>;
+  findAll(): Promise<SnakeDomain[]>;
 }

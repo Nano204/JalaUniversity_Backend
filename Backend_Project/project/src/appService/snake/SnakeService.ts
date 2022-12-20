@@ -40,6 +40,6 @@ export default class SnakeService implements SnakeServiceInterface {
   }
 
   async findAllSnakes(): Promise<SnakeDomain[]> {
-    return await this.snakeRepository.getAll();
+    return await this.snakeRepository.findAll();
   }
 }
