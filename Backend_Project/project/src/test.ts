@@ -40,7 +40,8 @@ class Test_inversify {
       gameBehavior.locateFoodOnBoard();
       console.log(gameBehavior.getBoardScreen());
       console.log(game);
-      AppDataSource.dropDatabase();
+      gameService.saveGame(game);
+      // AppDataSource.dropDatabase();
     } catch (error) {
       console.log(error);
       AppDataSource.dropDatabase();
