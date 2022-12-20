@@ -100,4 +100,15 @@ export default class SnakeBehaviorService implements SnakeBehaviorServiceInterfa
   killSnake(): void {
     this.snake.status = "Death";
   }
+
+  getNodePostionArray(nodes: NodeDomain): number[][] {
+    if (nodes.node) {
+      const { x, y } = nodes.position;
+      const position = [x, y];
+      return [position, ...this.getNodePostionArray(nodes.node)];
+    } else {
+      const { x, y } = nodes.position;
+      return [[x, y]];
+    }
+  }
 }

@@ -25,7 +25,6 @@ export default class FoodService implements FoodServiceInterface {
     };
     const food = new FoodDomain();
     food.position = newPosition;
-    console.log(food);
     return await this.foodRepository.save(food);
   }
 

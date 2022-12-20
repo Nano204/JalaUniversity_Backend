@@ -6,4 +6,5 @@ export interface GameBuilderInterface {
   setBoard(size: number): void;
   setSize(size: number): void;
   setSnakes(): void;
+  setFood(): void;
 }
