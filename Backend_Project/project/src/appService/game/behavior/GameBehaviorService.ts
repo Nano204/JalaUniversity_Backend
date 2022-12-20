@@ -1,7 +1,5 @@
 import SERVICE_IDENTIFIER from "../../../dependencies/identifiers";
 import container from "../../../dependencies/ioc_config";
-import BoardDomain from "../../../domain/entities/BoardDomain";
-import { FoodDomain } from "../../../domain/entities/FoodDomain";
 import GameDomain from "../../../domain/entities/GameDomain";
 import { GameState, SpaceStatus } from "../../../domain/types/types";
 import { FoodServiceInterface } from "../../food/FoodServiceInterface";

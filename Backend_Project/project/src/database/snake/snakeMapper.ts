@@ -10,7 +10,6 @@ export class snakeMapper {
     entitySnake.status = snake.status;
     entitySnake.ownerId = snake.ownerId;
     entitySnake.length = snake.length;
-    entitySnake.gameId = snake.gameId;
     return entitySnake;
   }
 
@@ -22,7 +21,7 @@ export class snakeMapper {
     workSnake.head = JSON.parse(snake.head);
     workSnake.ownerId = snake.ownerId;
     workSnake.status = snake.status;
-    workSnake.gameId = snake.gameId;
+    workSnake.length = snake.length;
     return workSnake;
   }
 }

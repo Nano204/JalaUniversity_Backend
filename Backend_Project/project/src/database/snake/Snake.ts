@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { SnakeStatus } from "../../domain/types/types";
 import { Game } from "../game/Game";
 
@@ -18,6 +18,7 @@ export class Snake {
   public length!: number;
   @Column({ nullable: true })
   public ownerId!: number;
-  @Column({ nullable: true })
-  public gameId?: number;
+  @ManyToOne(() => Game, (game) => game.snakes)
+  @JoinColumn()
+  public game?: Game;
 }
