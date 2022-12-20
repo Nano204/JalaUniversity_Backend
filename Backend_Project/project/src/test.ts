@@ -28,20 +28,23 @@ class Test_inversify {
 
       const game = new GameDomain();
       const gameBuilder = new GameBuilder(game);
-      console.log("Here");
       const gameBehavior = new GameBehaviorService(game);
-      console.log(game);
-      gameBuilder.setSize(10);
-      await gameBuilder.setBoard();
+      // console.log(game);
+      gameBuilder.setSize(5);
       gameBuilder.setUsers([player1, player2]);
+      await gameBuilder.setBoard();
       await gameBuilder.setSnakes();
-      gameBehavior.locateSnakesonBoard();
-      await gameBehavior.createNewFood();
-      gameBehavior.locateFoodOnBoard();
-      console.log(gameBehavior.getBoardScreen());
-      console.log(game);
-      gameService.saveGame(game);
-      // AppDataSource.dropDatabase();
+      await gameBuilder.setFood();
+      // gameBehavior.locateSnakesonBoard();
+      // console.log("Here");
+      // console.log(game.snakes);
+      // console.log(game.food?.position);
+      // gameBehavior.locateFoodOnBoard();
+      // console.log(game.board?.coordinates);
+      await gameService.saveGame(game);
+      await gameBehavior.hasCrashed();
+      // gameBehavior.initializeGame();
+      AppDataSource.dropDatabase();
     } catch (error) {
       console.log(error);
       AppDataSource.dropDatabase();

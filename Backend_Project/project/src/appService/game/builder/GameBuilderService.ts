@@ -4,6 +4,7 @@ import GameDomain from "../../../domain/entities/GameDomain";
 import { UserDomain } from "../../../domain/entities/UserDomain";
 import { GameState } from "../../../domain/types/types";
 import { BoardServiceInterface } from "../../board/BoardServiceInterface";
+import { FoodServiceInterface } from "../../food/FoodServiceInterface";
 import SnakeBehaviorService from "../../snake/behavior/SnakeBehaviorService";
 import { SnakeServiceInterface } from "../../snake/SnakeServiceInterface";
 import { GameBuilderInterface } from "./GameBuilderServiceInterface";
@@ -17,6 +18,10 @@ export default class GameBuilder implements GameBuilderInterface {
 
   private snakeService = container.get<SnakeServiceInterface>(
     SERVICE_IDENTIFIER.SNAKE_SERVICE
+  );
+
+  private foodService = container.get<FoodServiceInterface>(
+    SERVICE_IDENTIFIER.FOOD_SERVICE
   );
 
   constructor(game: GameDomain) {
@@ -55,9 +60,22 @@ export default class GameBuilder implements GameBuilderInterface {
         const snake = await this.snakeService.createNew();
         const snakeBehavior = new SnakeBehaviorService(snake);
         snakeBehavior.setOwner(user.id);
+        if (!this.game.size) {
+          throw new Error("Need size to set snakes");
+        }
+        snakeBehavior.setHeadPosition(this.game.size);
         return snake;
       })
     );
     this.game.snakes = snakes;
+  }
+
+  async setFood(): Promise<void> {
+    if (!this.game.size) {
+      throw new Error("Need size to assign Food");
+    }
+    const boundary = this.game.size - 1;
+    const food = await this.foodService.createNew(boundary);
+    this.game.food = food;
   }
 }

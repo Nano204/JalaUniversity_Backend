@@ -5,7 +5,7 @@ import { Game } from "../game/Game";
 @Entity()
 export class Snake {
   @PrimaryGeneratedColumn()
-  public readonly id!: number;
+  public id!: number;
   @Column({ nullable: true })
   public head!: string;
   @Column()

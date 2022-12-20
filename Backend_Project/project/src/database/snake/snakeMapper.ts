@@ -4,6 +4,9 @@ import { Snake } from "./Snake";
 export class snakeMapper {
   static toDBEntity(snake: SnakeDomain) {
     const entitySnake: Snake = new Snake();
+    if (snake.id) {
+      entitySnake.id = snake.id;
+    }
     entitySnake.head = JSON.stringify(snake.head);
     entitySnake.nodes = JSON.stringify(snake.nodes);
     entitySnake.direction = snake.direction;

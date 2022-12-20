@@ -17,7 +17,7 @@ export default class BoardService implements BoardServiceInterface {
   }
   async createNew(size = 10): Promise<BoardDomain> {
     const board = new BoardDomain();
-    board.coordinates = new Array(size).fill(Array(size).fill("0"));
+    board.coordinates = new Array(size).fill(new Array(size).fill("0"));
     return await this.boardRepository.save(board);
   }
   async findBoard(id: number): Promise<BoardDomain | null> {
