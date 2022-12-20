@@ -1,5 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 import { SnakeStatus } from "../../domain/types/types";
+import { Game } from "../game/Game";
 
 @Entity()
 export class Snake {
@@ -16,7 +17,7 @@ export class Snake {
   @Column()
   public length!: number;
   @Column({ nullable: true })
-  public gameId!: number;
-  @Column({ nullable: true })
   public ownerId!: number;
+  @Column({ nullable: true })
+  public gameId?: number;
 }

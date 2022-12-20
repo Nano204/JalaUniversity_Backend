@@ -7,22 +7,22 @@ export class snakeMapper {
     entitySnake.head = JSON.stringify(snake.head);
     entitySnake.nodes = JSON.stringify(snake.nodes);
     entitySnake.direction = snake.direction;
-    entitySnake.gameId = snake.gameId;
     entitySnake.status = snake.status;
     entitySnake.ownerId = snake.ownerId;
     entitySnake.length = snake.length;
+    entitySnake.gameId = snake.gameId;
     return entitySnake;
   }
+
   static toWorkUnit(snake: Snake) {
     const workSnake: SnakeDomain = new SnakeDomain();
     workSnake.id = snake.id;
     workSnake.direction = snake.direction;
     workSnake.nodes = JSON.parse(snake.nodes);
     workSnake.head = JSON.parse(snake.head);
-    workSnake.gameId = snake.gameId;
     workSnake.ownerId = snake.ownerId;
     workSnake.status = snake.status;
-    workSnake.length = snake.length;
+    workSnake.gameId = snake.gameId;
     return workSnake;
   }
 }

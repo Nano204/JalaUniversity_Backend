@@ -7,8 +7,8 @@ export class SnakeDomain {
   direction!: Direction;
   status!: SnakeStatus;
   nodes!: NodeDomain | null | undefined;
-  gameId!: number;
   ownerId!: number;
   shadow?: Position;
   length!: number;
+  gameId?: number;
 }
