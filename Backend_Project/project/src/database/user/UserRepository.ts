@@ -28,6 +28,11 @@ export default class UserRepository implements UserRepositoryInterface {
 
   async findAll(): Promise<UserDomain[]> {
     const repository = AppDataSource.getRepository(User);
-    return await repository.find();
+    const responseUserArray = repository.find().then((boardsArray) => {
+      return boardsArray.map((element) => {
+        return userMapper.toWorkUnit(element);
+      });
+    });
+    return responseUserArray;
   }
 }

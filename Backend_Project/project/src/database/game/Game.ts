@@ -8,13 +8,14 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Board } from "../board/Board";
+import { Food } from "../food/Food";
 import { Snake } from "../snake/Snake";
 import { User } from "../user/User";
 
 @Entity()
 export class Game {
   @PrimaryGeneratedColumn()
-  public id!: number;
+  public readonly id!: number;
   @Column()
   public speed!: number;
   @Column()
@@ -27,7 +28,7 @@ export class Game {
   @OneToMany(() => Snake, (snake) => snake.game, { cascade: true })
   public snakes?: Snake[];
   @Column()
-  public size?: number;
-  @Column()
-  public food?: string;
+  public size!: number;
+  @OneToOne(() => Food, (food) => food.game, { cascade: true })
+  public food!: string;
 }
