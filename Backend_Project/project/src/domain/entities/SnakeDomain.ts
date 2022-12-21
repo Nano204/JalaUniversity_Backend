@@ -1,14 +1,15 @@
 import { Direction, Position, SnakeStatus } from "../types/types";
-import { NodeDomain } from "./NodeDomain";
+import GameDomain from "./GameDomain";
+import { UserDomain } from "./UserDomain";
 
 export class SnakeDomain {
-  id!: number;
-  head!: Position;
-  direction!: Direction;
-  status!: SnakeStatus;
-  nodes!: NodeDomain | null | undefined;
-  ownerId!: number;
-  shadow?: Position;
-  length!: number;
-  gameId?: number;
+  public readonly id!: number;
+  public head!: Position;
+  public direction!: Direction;
+  public status!: SnakeStatus;
+  public nodes!: Position[];
+  public length!: number;
+  public nextNodeSpace!: Position | undefined;
+  public user!: UserDomain | undefined;
+  public game!: GameDomain | undefined;
 }

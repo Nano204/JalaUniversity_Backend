@@ -3,17 +3,18 @@ import {
   Entity,
   JoinTable,
   ManyToMany,
+  OneToMany,
   PrimaryGeneratedColumn,
   Unique,
 } from "typeorm";
-import { UserDomain } from "../../domain/entities/UserDomain";
 import { Game } from "../game/Game";
+import { Snake } from "../snake/Snake";
 
 @Entity()
 @Unique(["firstName", "lastName"])
-export class User implements UserDomain {
+export class User {
   @PrimaryGeneratedColumn()
-  public id!: number;
+  public readonly id!: number;
   @Column()
   public firstName!: string;
   @Column()
@@ -24,5 +25,9 @@ export class User implements UserDomain {
     cascade: true,
   })
   @JoinTable({ name: "games_users" })
-  public games!: Game[];
+  public games?: Game[];
+  @OneToMany(() => Snake, (snake) => snake.user, {
+    cascade: true,
+  })
+  public snakes?: Snake[];
 }

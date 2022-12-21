@@ -5,12 +5,12 @@ import { SnakeDomain } from "./SnakeDomain";
 import { UserDomain } from "./UserDomain";
 
 export default class GameDomain {
-  public id?: number;
-  public speed!: number;
+  public readonly id!: number;
   public state!: GameState;
-  public users?: UserDomain[];
-  public board?: BoardDomain;
-  public snakes?: SnakeDomain[];
-  public size?: number;
-  public food?: FoodDomain;
+  public speed!: number;
+  public size!: number;
+  public users!: UserDomain[] | undefined;
+  public board!: BoardDomain | undefined;
+  public snakes!: SnakeDomain[] | undefined;
+  public food!: FoodDomain | undefined;
 }

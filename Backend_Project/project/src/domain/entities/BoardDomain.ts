@@ -1,7 +1,8 @@
 import { SpaceStatus } from "../types/types";
+import GameDomain from "./GameDomain";
 
 export default class BoardDomain {
-  public id!: number;
+  public readonly id!: number;
   public coordinates!: SpaceStatus[][];
-  public gameId!: number;
+  public game!: GameDomain;
 }

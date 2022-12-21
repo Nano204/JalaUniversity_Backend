@@ -1,16 +1,10 @@
-import { NodeDomain } from "../../../domain/entities/NodeDomain";
-import { Position } from "../../../domain/types/types";
-
+import { SnakeDomain } from "../../../domain/entities/SnakeDomain";
 
 export interface SnakeBehaviorServiceInterface {
-  setOwner(ownerId: number): void;
-  changeDirection(direction: number): void;
-  moveFollowingNodes(nodes: NodeDomain, position: Position): void;
-  getLastNodePosition(): Position;
-  findLastNode(nodes: NodeDomain): NodeDomain | null;
-  setShadow(shadow: Position): void;
-  moveStep(boundary: number): void;
-  growUp(position: Position): void;
-  setHeadPosition(boundary: number): void;
-  killSnake(): void;
+  setOwner(snakeId: number, ownerId: number): Promise<SnakeDomain | void>;
+  setDirection(snakeId: number, direction: "up" | "down" | "left" | "right"): Promise<SnakeDomain | void>;
+  setHeadPosition(snakeId: number, boundary: number): Promise<SnakeDomain | void>;
+  moveStep(snakeId: number, boundary: number): Promise<SnakeDomain | void>;
+  growUp(snakeId: number): Promise<SnakeDomain | void>;
+  killSnake(snakeId: number): Promise<SnakeDomain | void>;
 }

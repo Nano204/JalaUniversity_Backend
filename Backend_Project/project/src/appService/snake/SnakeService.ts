@@ -24,6 +24,7 @@ export default class SnakeService implements SnakeServiceInterface {
     snake.direction = randomNumber(maxDirectionIndex);
     snake.status = "Alive";
     snake.length = 1;
+    snake.nodes = [];
     return await this.snakeRepository.save(snake);
   }
 

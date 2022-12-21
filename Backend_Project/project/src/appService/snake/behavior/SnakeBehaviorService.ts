@@ -1,114 +1,155 @@
+import SERVICE_IDENTIFIER from "../../../dependencies/identifiers";
+import container from "../../../dependencies/ioc_config";
 import { SnakeDomain } from "../../../domain/entities/SnakeDomain";
-import { Direction, Position } from "../../../domain/types/types";
+import Exceptions from "../../../domain/exceptions/Exception";
+import { Direction } from "../../../domain/types/types";
 import RandomNumberSupportService from "../../support/RandomNumberUnitOfWorkService";
-import { NodeDomain } from "../../../domain/entities/NodeDomain";
+import { UserServiceInterface } from "../../user/UserServiceInterface";
+import { SnakeServiceInterface } from "../SnakeServiceInterface";
 import { SnakeBehaviorServiceInterface } from "./SnakeBehaviorServiceInterface";
 
-const randomNumber = new RandomNumberSupportService().randomNumber;
 export default class SnakeBehaviorService implements SnakeBehaviorServiceInterface {
-  private snake: SnakeDomain;
+  private snakeService = container.get<SnakeServiceInterface>(
+    SERVICE_IDENTIFIER.SNAKE_SERVICE
+  );
 
-  constructor(snake: SnakeDomain) {
-    this.snake = snake;
+  private userService = container.get<UserServiceInterface>(
+    SERVICE_IDENTIFIER.USER_SERVICE
+  );
+
+  private randomNumber = new RandomNumberSupportService().randomNumber;
+
+  private areNotContaryDirection(
+    currentDirection: Direction,
+    newDirection: Direction
+  ): boolean {
+    return !(
+      (currentDirection == Direction.up && newDirection == Direction.down) ||
+      (currentDirection == Direction.down && newDirection == Direction.up) ||
+      (currentDirection == Direction.left && newDirection == Direction.right) ||
+      (currentDirection == Direction.right && newDirection == Direction.left)
+    );
   }
 
-  setOwner(ownerId: number): void {
-    this.snake.ownerId = ownerId;
-  }
-
-  changeDirection(direction: Direction): void {
-    if (
-      !(
-        (this.snake.direction == Direction.Up && direction == Direction.Down) ||
-        (this.snake.direction == Direction.Down && direction == Direction.Up) ||
-        (this.snake.direction == Direction.Left && direction == Direction.Right) ||
-        (this.snake.direction == Direction.Right && direction == Direction.Left)
-      )
-    ) {
-      this.snake.direction = direction;
-    }
-  }
-
-  moveFollowingNodes(nodes: NodeDomain, position: Position): void {
-    const nextPosition = nodes.position;
-    nodes.position = position;
-    if (nodes.node) {
-      this.moveFollowingNodes(nodes.node, nextPosition);
-    }
-  }
-
-  getLastNodePosition(): Position {
-    let nextPosition: Position;
-    if (!this.snake.nodes) {
-      nextPosition = this.snake.head;
+  private async setNextNodeSpace(snakeId: number): Promise<SnakeDomain | void> {
+    const snake = await this.snakeService.findSnake(snakeId);
+    if (snake) {
+      if (snake.nodes.length) {
+        const length = snake.nodes.length;
+        snake.nextNodeSpace = snake.nodes[length - 1];
+      } else {
+        snake.nextNodeSpace = snake.head;
+      }
+      return await this.snakeService.updateSnake(snake);
     } else {
-      nextPosition = this.findLastNode(this.snake.nodes).position;
+      new Exceptions().itemNotFoundException("Snake", snakeId);
     }
-    return nextPosition;
   }
 
-  findLastNode(nodes: NodeDomain): NodeDomain {
-    if (nodes.node) {
-      return this.findLastNode(nodes.node);
+  private async moveFollowingNodes(snakeId: number): Promise<SnakeDomain | void> {
+    const snake = await this.snakeService.findSnake(snakeId);
+    if (snake) {
+      if (snake.nodes.length) {
+        for (let i = snake.nodes.length - 1; i > 0; i--) {
+          snake.nodes[i] = snake.nodes[i - 1];
+        }
+        snake.nodes[0] = snake.head;
+        return await this.snakeService.updateSnake(snake);
+      }
+      return await this.snakeService.updateSnake(snake);
     } else {
-      return nodes;
+      new Exceptions().itemNotFoundException("Snake", snakeId);
     }
   }
 
-  setShadow(shadow: Position): void {
-    this.snake.shadow = shadow;
-  }
-
-  moveStep(boundary: number): void {
-    this.setShadow(this.getLastNodePosition());
-    let { x, y } = this.snake.head;
-    const followingNodesNextPosition = this.snake.head;
-    if (this.snake.direction == Direction.Up) {
-      y = y < boundary ? ++y : 0;
-    } else if (this.snake.direction == Direction.Down) {
-      y = y > 0 ? --y : boundary;
-    } else if (this.snake.direction == Direction.Right) {
-      x = x < boundary ? ++x : 0;
-    } else if (this.snake.direction == Direction.Left) {
-      x = x > 0 ? --x : boundary;
-    }
-    this.snake.head = { x, y };
-    if (this.snake.nodes) {
-      this.moveFollowingNodes(this.snake.nodes, followingNodesNextPosition);
-    }
-  }
-
-  growUp(): void {
-    if (!this.snake.shadow) throw new Error("Not shadow");
-    ++this.snake.length;
-    const newNode: NodeDomain = {
-      position: this.snake.shadow,
-      node: null,
-    };
-    if (!this.snake.nodes) {
-      this.snake.nodes = newNode;
+  async setOwner(snakeId: number, ownerId: number): Promise<SnakeDomain | void> {
+    const snake = await this.snakeService.findSnake(snakeId);
+    if (snake) {
+      const user = await this.userService.findUser(ownerId);
+      if (user) {
+        snake.user = user;
+        return await this.snakeService.updateSnake(snake);
+      } else {
+        new Exceptions().itemNotFoundException("User", ownerId);
+      }
     } else {
-      const lastNode = this.findLastNode(this.snake.nodes);
-      lastNode.node = newNode;
+      new Exceptions().itemNotFoundException("Snake", snakeId);
     }
   }
 
-  setHeadPosition(boundary: number): void {
-    this.snake.head = { x: randomNumber(boundary), y: randomNumber(boundary) };
-  }
-
-  killSnake(): void {
-    this.snake.status = "Death";
-  }
-
-  getNodePostionArray(nodes: NodeDomain): number[][] {
-    if (nodes.node) {
-      const { x, y } = nodes.position;
-      const position = [x, y];
-      return [position, ...this.getNodePostionArray(nodes.node)];
+  async setDirection(
+    snakeId: number,
+    direction: "up" | "down" | "left" | "right"
+  ): Promise<SnakeDomain | void> {
+    const snake = await this.snakeService.findSnake(snakeId);
+    if (snake) {
+      const directionValidation = this.areNotContaryDirection(
+        snake.direction,
+        Direction[direction]
+      );
+      if (directionValidation) {
+        snake.direction = Direction[direction];
+      }
+      return await this.snakeService.updateSnake(snake);
     } else {
-      const { x, y } = nodes.position;
-      return [[x, y]];
+      new Exceptions().itemNotFoundException("Snake", snakeId);
+    }
+  }
+
+  async setHeadPosition(snakeId: number, boundary: number): Promise<SnakeDomain | void> {
+    const snake = await this.snakeService.findSnake(snakeId);
+    if (snake) {
+      const coordianteX = this.randomNumber(boundary);
+      const coordianteY = this.randomNumber(boundary);
+      snake.head = { x: coordianteX, y: coordianteY };
+      return await this.snakeService.updateSnake(snake);
+    } else {
+      new Exceptions().itemNotFoundException("Snake", snakeId);
+    }
+  }
+
+  async moveStep(snakeId: number, boundary: number): Promise<SnakeDomain | void> {
+    await this.setNextNodeSpace(snakeId);
+    await this.moveFollowingNodes(snakeId);
+    const snake = await this.snakeService.findSnake(snakeId);
+    if (snake) {
+      const headPostion = snake.head;
+      if (snake.direction == Direction.up) {
+        headPostion.y = headPostion.y < boundary ? ++headPostion.y : 0;
+      } else if (snake.direction == Direction.down) {
+        headPostion.y = headPostion.y > 0 ? --headPostion.y : boundary;
+      } else if (snake.direction == Direction.right) {
+        headPostion.x = headPostion.x < boundary ? ++headPostion.x : 0;
+      } else if (snake.direction == Direction.left) {
+        headPostion.x = headPostion.x > 0 ? --headPostion.x : boundary;
+      }
+      snake.head = headPostion;
+      return await this.snakeService.updateSnake(snake);
+    } else {
+      new Exceptions().itemNotFoundException("Snake", snakeId);
+    }
+  }
+
+  async growUp(snakeId: number): Promise<SnakeDomain | void> {
+    const snake = await this.snakeService.findSnake(snakeId);
+    if (snake) {
+      if (snake.nextNodeSpace) {
+        ++snake.length;
+        snake.nodes.push(snake.nextNodeSpace);
+      }
+      return await this.snakeService.updateSnake(snake);
+    } else {
+      new Exceptions().itemNotFoundException("Snake", snakeId);
+    }
+  }
+
+  async killSnake(snakeId: number): Promise<SnakeDomain | void> {
+    const snake = await this.snakeService.findSnake(snakeId);
+    if (snake) {
+      snake.status = "Death";
+      return await this.snakeService.updateSnake(snake);
+    } else {
+      new Exceptions().itemNotFoundException("Snake", snakeId);
     }
   }
 }

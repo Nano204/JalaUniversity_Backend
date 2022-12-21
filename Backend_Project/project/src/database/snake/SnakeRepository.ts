@@ -23,6 +23,7 @@ export class SnakeRepository implements SnakeRepositoryInterface {
   async findById(id: number): Promise<SnakeDomain | null> {
     const repository = AppDataSource.getRepository(Snake);
     const responseSnake = await repository.findOneBy({ id });
+    console.log(responseSnake);
     return responseSnake && snakeMapper.toWorkUnit(responseSnake);
   }
 

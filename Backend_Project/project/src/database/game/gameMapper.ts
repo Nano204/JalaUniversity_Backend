@@ -8,12 +8,12 @@ import { userMapper } from "../user/userMapper";
 export class gameMapper {
   static toDBEntity(game: GameDomain) {
     const entityGame: Game = new Game();
-    if (game.id) {
-      entityGame.id = game.id;
-    }
     entityGame.state = game.state;
     entityGame.speed = game.speed;
     entityGame.size = game.size;
+    if (game.users) {
+      entityGame.users = game.users.map((user) => userMapper.toDBEntity(user));
+    }
     if (game.board) {
       entityGame.board = boardMapper.toDBEntity(game.board);
     }
@@ -24,14 +24,20 @@ export class gameMapper {
       entityGame.users = game.users.map((user) => userMapper.toDBEntity(user));
     }
     entityGame.food = JSON.stringify(game.food);
+    if (game.id) {
+      return { ...entityGame, id: game.id };
+    }
     return entityGame;
   }
+
   static toWorkUnit(game: Game) {
     const workGame: GameDomain = new GameDomain();
-    workGame.id = game.id;
     workGame.state = game.state as GameState;
     workGame.speed = game.speed;
     workGame.size = game.size;
+    if (game.users) {
+      workGame.users = game.users.map((user) => userMapper.toWorkUnit(user));
+    }
     if (game.board) {
       workGame.board = boardMapper.toWorkUnit(game.board);
     }
@@ -39,6 +45,9 @@ export class gameMapper {
       workGame.snakes = game.snakes.map((snake) => snakeMapper.toWorkUnit(snake));
     }
     workGame.food = game.food && JSON.parse(game.food);
+    if (game.id) {
+      return { ...workGame, id: game.id };
+    }
     return workGame;
   }
 }

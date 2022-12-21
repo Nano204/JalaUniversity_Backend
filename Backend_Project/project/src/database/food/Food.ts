@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Game } from "../game/Game";
 
 @Entity()
 export class Food {
@@ -6,4 +7,6 @@ export class Food {
   public readonly id!: number;
   @Column()
   public position!: string;
+  @OneToOne(() => Game, (game) => game.food)
+  public game!: Game | undefined;
 }
