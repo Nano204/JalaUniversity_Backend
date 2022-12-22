@@ -16,10 +16,12 @@ import { User } from "../user/User";
 export class Game {
   @PrimaryGeneratedColumn()
   public readonly id!: number;
-  @Column()
+  @Column({ nullable: true })
   public speed!: number;
-  @Column()
+  @Column({ nullable: true })
   public state!: string;
+  @Column({ nullable: true })
+  public size!: number;
   @ManyToMany(() => User, (user) => user.games)
   public users!: User[];
   @OneToOne(() => Board, (board) => board.game, { cascade: true })
@@ -27,8 +29,7 @@ export class Game {
   public board!: Board;
   @OneToMany(() => Snake, (snake) => snake.game, { cascade: true })
   public snakes?: Snake[];
-  @Column()
-  public size!: number;
   @OneToOne(() => Food, (food) => food.game, { cascade: true })
-  public food!: string;
+  @JoinColumn()
+  public food!: Food;
 }

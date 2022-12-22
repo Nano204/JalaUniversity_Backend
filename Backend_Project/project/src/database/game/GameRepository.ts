@@ -15,10 +15,16 @@ export class GameRepository implements GameRepositoryInterface {
     return gameMapper.toWorkUnit(responseBoard);
   }
 
-  async findById(id: number): Promise<GameDomain | null> {
+  async findById(id: number): Promise<GameDomain> {
     const repository = AppDataSource.getRepository(Game);
-    const responseGame = await repository.findOneBy({ id });
-    return responseGame && gameMapper.toWorkUnit(responseGame);
+    const responseGame = await repository.findOne({
+      where: { id },
+      relations: ["users", "snakes", "board", "food"],
+    });
+    if (!responseGame) {
+      throw new Error("Not found");
+    }
+    return gameMapper.toWorkUnit(responseGame);
   }
 
   async deleteById(id: number): Promise<DBDeletion> {

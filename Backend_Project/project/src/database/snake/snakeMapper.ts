@@ -31,7 +31,9 @@ export class snakeMapper {
     workSnake.status = snake.status;
     workSnake.nodes = JSON.parse(snake.nodes);
     workSnake.length = snake.length;
-    workSnake.nextNodeSpace = JSON.parse(snake.nextNodeSpace);
+    if (snake.nextNodeSpace) {
+      workSnake.nextNodeSpace = JSON.parse(snake.nextNodeSpace);
+    }
     if (snake.user) {
       workSnake.user = userMapper.toWorkUnit(snake.user);
     }

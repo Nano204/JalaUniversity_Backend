@@ -10,15 +10,18 @@ import { foodMapper } from "./foodMapper";
 export class FoodRepository implements FoodRepositoryInterface {
   async save(food: FoodDomain): Promise<FoodDomain> {
     const repository = AppDataSource.getRepository(Food);
-    const dbBoard = foodMapper.toDBEntity(food);
-    const responseBoard = await repository.save(dbBoard);
-    return foodMapper.toWorkUnit(responseBoard);
+    const dbFood = foodMapper.toDBEntity(food);
+    const responseFood = await repository.save(dbFood);
+    return foodMapper.toWorkUnit(responseFood);
   }
-  
-  async findById(id: number): Promise<FoodDomain | null> {
+
+  async findById(id: number): Promise<FoodDomain> {
     const repository = AppDataSource.getRepository(Food);
-    const responseBoard = await repository.findOneBy({ id });
-    return responseBoard && foodMapper.toWorkUnit(responseBoard);
+    const responseFood = await repository.findOneBy({ id });
+    if (!responseFood) {
+      throw new Error("Not found");
+    }
+    return responseFood && foodMapper.toWorkUnit(responseFood);
   }
 
   async deleteById(id: number): Promise<DBDeletion> {

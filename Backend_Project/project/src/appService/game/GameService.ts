@@ -15,12 +15,16 @@ export default class GameService implements GameServiceInterface {
   ) {
     this.gameRepository = gameRepository;
   }
-
-  async saveGame(game: GameDomain): Promise<GameDomain> {
+  async createNew(): Promise<GameDomain> {
+    const game = new GameDomain();    
     return await this.gameRepository.save(game);
   }
 
-  async findGame(id: number): Promise<GameDomain | null> {
+  async updateGame(game: GameDomain): Promise<GameDomain> {
+    return await this.gameRepository.save(game);
+  }
+
+  async findGame(id: number): Promise<GameDomain> {
     return await this.gameRepository.findById(id);
   }
 

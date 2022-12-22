@@ -9,8 +9,8 @@ export default class GameDomain {
   public state!: GameState;
   public speed!: number;
   public size!: number;
-  public users!: UserDomain[] | undefined;
-  public board!: BoardDomain | undefined;
-  public snakes!: SnakeDomain[] | undefined;
-  public food!: FoodDomain | undefined;
+  public users!: UserDomain[];
+  public board!: BoardDomain;
+  public snakes!: SnakeDomain[];
+  public food!: FoodDomain;
 }
