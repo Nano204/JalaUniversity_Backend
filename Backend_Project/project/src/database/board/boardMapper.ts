@@ -14,6 +14,7 @@ export class boardMapper {
     }
     return entityBoard;
   }
+  
   static toWorkUnit(board: Board) {
     const workBoard: BoardDomain = new BoardDomain();
     workBoard.coordinates = JSON.parse(board.coordinates);

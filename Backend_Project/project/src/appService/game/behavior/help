@@ -1,0 +1,253 @@
+// mport SERVICE_IDENTIFIER from "../../../dependencies/identifiers";
+// import container from "../../../dependencies/ioc_config";
+// import GameDomain from "../../../domain/entities/GameDomain";
+// import { GameServiceInterface } from "../GameServiceInterface";
+// import { GameBehaviorServiceInterface } from "./GameBehaviorInterface";
+// import Exceptions from "../../../domain/exceptions/Exception";
+// import RandomNumberSupportService from "../../support/RandomNumberUnitOfWorkService";
+// import { Position } from "../../../domain/types/types";
+// import SnakeBehaviorService from "../../snake/behavior/SnakeBehaviorService";
+// import { FoodServiceInterface } from "../../food/FoodServiceInterface";
+
+// export default class GameBehaviorService implements GameBehaviorServiceInterface {
+//   private gameService = container.get<GameServiceInterface>(
+//     SERVICE_IDENTIFIER.GAME_SERVICE
+//   );
+
+//   private foodService = container.get<FoodServiceInterface>(
+//     SERVICE_IDENTIFIER.FOOD_SERVICE
+//   );
+
+//   private randomNumber = new RandomNumberSupportService().randomNumber;
+//   private gameTimer?: NodeJS.Timer;
+
+//   async fillBoard(gameId: number): Promise<GameDomain | void> {
+//     const game = await this.gameService.findGame(gameId);
+//     if (game) {
+//       if (game.board && game.snakes && game.food) {
+//         const { board, snakes, food } = game;
+//         const { coordinates } = board;
+//         const { position } = food;
+//         coordinates[position.y][position.x] = "F";
+        
+//         game.board.coordinates = coordinates;
+//       }
+//       return await this.gameService.updateGame(game);
+//     } else {
+//       new Exceptions().itemNotFoundException("Game", gameId);
+//     }
+//   }
+
+//   async clearBoard(gameId: number): Promise<GameDomain | void> {
+//     const game = await this.gameService.findGame(gameId);
+//     if (game) {
+//       const coordinates = game.board?.coordinates;
+//       if (!game.board || !coordinates) {
+//         throw new Error("Need board to be showed");
+//       }
+//       coordinates.map((array) => array.fill("0"));
+//       game.board.coordinates = coordinates;
+//       return await this.gameService.updateGame(game);
+//     } else {
+//       new Exceptions().itemNotFoundException("Game", gameId);
+//     }
+//   }
+
+//   async visualizeBoard(gameId: number): Promise<string | void> {
+//     const game = await this.gameService.findGame(gameId);
+//     if (game) {
+//       const boardImage = game.board?.coordinates.join("\n");
+//       return boardImage;
+//     } else {
+//       new Exceptions().itemNotFoundException("Game", gameId);
+//     }
+//   }
+
+//   async newPosition(gameId: number): Promise<Position | void> {
+//     const game = await this.gameService.findGame(gameId);
+//     if (game) {
+//       const boundary = game.size - 1;
+//       if (game.board) {
+//         const { coordinates } = game.board;
+//         let newPosition;
+//         do {
+//           newPosition = {
+//             x: this.randomNumber(boundary),
+//             y: this.randomNumber(boundary),
+//           };
+//         } while (coordinates[newPosition.y][newPosition.x] !== "0");
+//         return newPosition;
+//       }
+//     } else {
+//       new Exceptions().itemNotFoundException("Game", gameId);
+//     }
+//   }
+
+//   async getFulledSpaces(gameId: number): Promise<Position[] | void> {
+//     const game = await this.gameService.findGame(gameId);
+//     if (game) {
+//       const fulledSpaces: Position[] = [];
+//       game.snakes?.forEach((snake) => {
+//         fulledSpaces.push(snake.head);
+//         snake.nodes.forEach((node) => {
+//           fulledSpaces.push(node);
+//         });
+//       });
+//       return fulledSpaces;
+//     } else {
+//       new Exceptions().itemNotFoundException("Game", gameId);
+//     }
+//   }
+
+//   async theresCollition(gameId: number): Promise<boolean | void> {
+//     const game = await this.gameService.findGame(gameId);
+//     const fulledSpaces = await this.getFulledSpaces(gameId);
+//     if (game) {
+//       if (game.snakes && fulledSpaces) {
+//         const totalSnakes = game.snakes.length;
+//         const { snakes } = game;
+//         let samePositionUsage = 0;
+//         snakes.forEach((snake) => {
+//           const headX = snake.head.x;
+//           const headY = snake.head.y;
+//           fulledSpaces.forEach((space) => {
+//             const spaceX = space.x;
+//             const spaceY = space.y;
+//             if (headX == spaceX && headY == spaceY) {
+//               ++samePositionUsage;
+//             }
+//           });
+//         });
+//         if (samePositionUsage > totalSnakes) {
+//           return true;
+//         }
+//         return false;
+//       }
+//     } else {
+//       new Exceptions().itemNotFoundException("Game", gameId);
+//     }
+//   }
+
+//   async hasEatenFood(gameId: number): Promise<void> {
+//     const game = await this.gameService.findGame(gameId);
+//     console.log(game?.food);
+//     if (game && game.food) {
+//       const { food } = game;
+//       const foodX = food?.position.x;
+//       const foodY = food?.position.y;
+//       if (game.snakes) {
+//         const { snakes } = game;
+//         await Promise.all(
+//           snakes.map(async (snake) => {
+//             const headX = snake.head.x;
+//             const headY = snake.head.y;
+//             if (headX == foodX && headY == foodY) {
+//               console.log("here");
+//               const snakeBehaviorService = new SnakeBehaviorService();
+//               await snakeBehaviorService.growUp(snake.id);
+//               const newPosition = await this.newPosition(gameId);
+//               if (newPosition && game.food) {
+//                 game.food.position = newPosition;
+//                 await this.foodService.updateFood(game.food);
+//               }
+//             }
+//           })
+//         );
+//       }
+//     }
+//   }
+
+//   async moveFrame(gameId: number): Promise<GameDomain | void> {
+//     const game = await this.gameService.findGame(gameId);
+//     const snakeBehavior = new SnakeBehaviorService();
+//     // await snakeBehavior.restartSnake(4, 4);
+//     // await snakeBehavior.restartSnake(3, 4);
+//     if (game) {
+//       if (game.snakes) {
+//         Promise.all(
+//           game.snakes.map(async (snake) => {
+//             await snakeBehavior.moveStep(snake.id, game.size - 1);
+//           })
+//         );
+//         console.log(game.snakes);
+//         await this.clearBoard(gameId);
+//         await this.fillBoard(gameId);
+//         await this.hasEatenFood(gameId);
+
+//         // console.clear();
+//         console.log(await this.visualizeBoard(gameId));
+//       }
+//     }
+//   }
+
+//   async reinitialize(gameId: number): Promise<GameDomain | void> {
+//     const game = await this.gameService.findGame(gameId);
+//     if (game) {
+//       return game;
+//     }
+//   }
+// }
+
+// async initialize(gameId: number): Promise<GameDomain | void> {
+//   const game = await this.gameService.findGame(gameId);
+//   if (game) {
+//     if (game.state == "Ended") {
+//       this.reinitialize(gameId);
+//     }
+//     game.state = "Ready";
+//     this.gameTimer = setInterval(async () => {
+//       const collisionCheck = await this.theresCollition(gameId);
+//       if (collisionCheck) {
+//         clearInterval(this.gameTimer);
+//         const finishedGame = await this.gameService.findGame(gameId);
+//         if (finishedGame) {
+//           finishedGame.state = "Ended";
+//           return await this.gameService.updateGame(finishedGame);
+//         }
+//       }
+//       await this.clearBoard(gameId);
+//       await this.fillBoard(gameId);
+//       await this.hasEatenFood(gameId);
+//       console.clear();
+//       console.log(await this.visualizeBoard(gameId));
+//     }, 3000);
+//   } else {
+//     new Exceptions().itemNotFoundException("Game", gameId);
+//   }
+// }
+
+// private game: GameDomain;
+// private gameTimer: NodeJS.Timer | undefined;
+
+// constructor(game: GameDomain) {
+//   this.game = game;
+//   this.game.speed = 1;
+//   this.game.state = "Ready" as GameState;
+// }
+
+// initializeGame(): void {
+//   this.game.state = "Playing";
+//   this.gameTimer = setInterval(() => {
+//     this.game.snakes?.map((snake) => {
+//       if (!this.game.size) {
+//         throw new Error("Need size to set boundaries");
+//       }
+//       const boundary = this.game.size - 1;
+//       const snakeBehavior = new SnakeBehaviorService(snake);
+//       snakeBehavior.moveStep(boundary);
+//       this.clearBoard();
+//       this.locateSnakesonBoard();
+//       this.locateFoodOnBoard();
+//     });
+//     console.clear();
+//     console.log(this.getBoardScreen());
+//   }, 1000);
+// }
+
+// restartGame(): void {
+//   throw new Error("Method not implemented.");
+// }
+
+// endGame(): void {
+//   throw new Error("Method not implemented.");
+// }

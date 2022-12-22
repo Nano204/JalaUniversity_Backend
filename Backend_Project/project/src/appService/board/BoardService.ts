@@ -15,12 +15,15 @@ export default class BoardService implements BoardServiceInterface {
   ) {
     this.boardRepository = boardRepository;
   }
-  async createNew(size = 10): Promise<BoardDomain> {
+  async createNew(size: number): Promise<BoardDomain> {
     const board = new BoardDomain();
     board.coordinates = new Array(size).fill(new Array(size).fill("0"));
     return await this.boardRepository.save(board);
   }
-  async findBoard(id: number): Promise<BoardDomain | null> {
+  async updateBoard(board: BoardDomain): Promise<BoardDomain> {
+    return await this.boardRepository.save(board);
+  }
+  async findBoard(id: number): Promise<BoardDomain> {
     return await this.boardRepository.findById(id);
   }
   async deleteBoard(id: number): Promise<DBDeletion> {

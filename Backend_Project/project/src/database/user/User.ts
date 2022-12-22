@@ -19,7 +19,7 @@ export class User {
   public firstName!: string;
   @Column()
   public lastName!: string;
-  @Column({ nullable: true })
+  @Column()
   public maxScore!: number;
   @ManyToMany(() => Game, (game) => game.users, {
     cascade: true,

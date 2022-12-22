@@ -14,10 +14,13 @@ export default class UserRepository implements UserRepositoryInterface {
     return userMapper.toWorkUnit(savedUser);
   }
 
-  async findById(id: number): Promise<UserDomain | null> {
+  async findById(id: number): Promise<UserDomain> {
     const repository = AppDataSource.getRepository(User);
     const findedUser = await repository.findOneBy({ id });
-    return findedUser && userMapper.toWorkUnit(findedUser);
+    if (!findedUser) {
+      throw new Error("Not found");
+    }
+    return userMapper.toWorkUnit(findedUser);
   }
 
   async deleteById(id: number): Promise<DBDeletion> {

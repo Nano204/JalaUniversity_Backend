@@ -14,10 +14,13 @@ export default class BoardRepository implements BoardRepositoryInterface {
     const responseBoard = await repository.save(dbBoard);
     return boardMapper.toWorkUnit(responseBoard);
   }
-  async findById(id: number): Promise<IBoard | null> {
+  async findById(id: number): Promise<IBoard> {
     const repository = AppDataSource.getRepository(Board);
     const responseBoard = await repository.findOneBy({ id });
-    return responseBoard && boardMapper.toWorkUnit(responseBoard);
+    if (!responseBoard) {
+      throw new Error("Not found");
+    }
+    return boardMapper.toWorkUnit(responseBoard);
   }
 
   async deleteById(id: number): Promise<DBDeletion> {

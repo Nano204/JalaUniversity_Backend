@@ -20,11 +20,13 @@ export class SnakeRepository implements SnakeRepositoryInterface {
     return snakeMapper.toWorkUnit(responseSnake);
   }
 
-  async findById(id: number): Promise<SnakeDomain | null> {
+  async findById(id: number): Promise<SnakeDomain> {
     const repository = AppDataSource.getRepository(Snake);
     const responseSnake = await repository.findOneBy({ id });
-    console.log(responseSnake);
-    return responseSnake && snakeMapper.toWorkUnit(responseSnake);
+    if (!responseSnake) {
+      throw new Error("Not found");
+    }
+    return snakeMapper.toWorkUnit(responseSnake);
   }
 
   async deleteById(id: number): Promise<DBDeletion> {

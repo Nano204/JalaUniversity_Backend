@@ -19,10 +19,11 @@ export default class UserService implements UserServiceInterface {
     const user = new UserDomain();
     user.firstName = firstName;
     user.lastName = lastName;
+    user.maxScore = 0;
     return await this.userRepository.save(user);
   }
 
-  async findUser(id: number): Promise<UserDomain | null> {
+  async findUser(id: number): Promise<UserDomain> {
     return await this.userRepository.findById(id);
   }
 

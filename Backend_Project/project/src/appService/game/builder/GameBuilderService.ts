@@ -1,81 +1,103 @@
 import SERVICE_IDENTIFIER from "../../../dependencies/identifiers";
 import container from "../../../dependencies/ioc_config";
 import GameDomain from "../../../domain/entities/GameDomain";
-import { UserDomain } from "../../../domain/entities/UserDomain";
 import { GameState } from "../../../domain/types/types";
+import { GameServiceInterface } from "../GameServiceInterface";
+import { GameBuilderInterface } from "./GameBuilderServiceInterface";
+import { UserServiceInterface } from "../../user/UserServiceInterface";
+import SnakeBehaviorService from "../../snake/behavior/SnakeBehaviorService";
 import { BoardServiceInterface } from "../../board/BoardServiceInterface";
 import { FoodServiceInterface } from "../../food/FoodServiceInterface";
-import SnakeBehaviorService from "../../snake/behavior/SnakeBehaviorService";
-import { SnakeServiceInterface } from "../../snake/SnakeServiceInterface";
-import { GameBuilderInterface } from "./GameBuilderServiceInterface";
 
 export default class GameBuilder implements GameBuilderInterface {
-  private game: GameDomain;
-
-  private baordService = container.get<BoardServiceInterface>(
+  private gameService = container.get<GameServiceInterface>(
+    SERVICE_IDENTIFIER.GAME_SERVICE
+  );
+  private userService = container.get<UserServiceInterface>(
+    SERVICE_IDENTIFIER.USER_SERVICE
+  );
+  private boardService = container.get<BoardServiceInterface>(
     SERVICE_IDENTIFIER.BOARD_SERVICE
   );
-
-  private snakeService = container.get<SnakeServiceInterface>(
-    SERVICE_IDENTIFIER.SNAKE_SERVICE
-  );
-
-  private foodService = container.get<FoodServiceInterface>(
+  private foodSercive = container.get<FoodServiceInterface>(
     SERVICE_IDENTIFIER.FOOD_SERVICE
   );
 
-  constructor(game: GameDomain) {
-    this.game = game;
-    this.game.speed = 1;
-    this.game.state = "Ready" as GameState;
-  }
+  private snakeBehavior = new SnakeBehaviorService();
 
-  setSpeed(speed: number): void {
-    this.game.speed = speed;
-  }
+  private async setSnakes(gameId: number): Promise<GameDomain> {
+    const game = await this.gameService.findGame(gameId);
 
-  setUsers(users: UserDomain[]): void {
-    this.game.users = users;
-  }
-
-  setSize(size: number) {
-    this.game.size = size;
-  }
-
-  async setBoard(): Promise<void> {
-    if (!this.game.size) {
-      throw new Error("Need size to assign Board");
+    if (game.users) {
+      game.snakes = [];
+      await Promise.all(
+        game.users.map(async (user) => {
+          const snake = await this.snakeBehavior.buildNewSnake(user.id, game.size);
+          if (game.snakes) {
+            game.snakes.push(snake);
+          }
+        })
+      );
     }
-    const board = await this.baordService.createNew(this.game.size);
-    this.game.board = board;
+    return await this.gameService.updateGame(game);
   }
 
-  async setSnakes(): Promise<void> {
-    if (!this.game.users?.length) {
-      throw new Error("Need users to assing Snakes");
-    }
+  private async setBoard(gameId: number): Promise<GameDomain> {
+    const game = await this.gameService.findGame(gameId);
+    const board = await this.boardService.createNew(game.size);
+    game.board = board;
+    return await this.gameService.updateGame(game);
+  }
 
-    const snakes = await Promise.all(
-      this.game.users.map(async (user) => {
-        const snake = await this.snakeService.createNew();
-        const snakeBehavior = new SnakeBehaviorService(snake);
-        snakeBehavior.setOwner(user.id);
-        if (!this.game.size) {
-          throw new Error("Need size to set snakes");
+  private async setFood(gameId: number): Promise<GameDomain> {
+    const game = await this.gameService.findGame(gameId);
+    const food = await this.foodSercive.createNew(game.size);
+    game.food = food;
+    return await this.gameService.updateGame(game);
+  }
+
+  async setState(gameId: number, state: GameState): Promise<GameDomain> {
+    const game = await this.gameService.findGame(gameId);
+    game.state = state;
+    return await this.gameService.updateGame(game);
+  }
+
+  async setSpeed(gameId: number, speed: number): Promise<GameDomain> {
+    const game = await this.gameService.findGame(gameId);
+    game.speed = speed;
+    return await this.gameService.updateGame(game);
+  }
+
+  async setSize(gameId: number, size: number): Promise<GameDomain> {
+    const game = await this.gameService.findGame(gameId);
+    game.size = size;
+    return await this.gameService.updateGame(game);
+  }
+
+  async setUsers(gameId: number, usersId: number[]): Promise<GameDomain> {
+    const game = await this.gameService.findGame(gameId);
+    await Promise.all(
+      usersId.map(async (userId) => {
+        const user = await this.userService.findUser(userId);
+        if (game.users) {
+          game.users.push(user);
+        } else {
+          game.users = [user];
         }
-        snakeBehavior.setHeadPosition(this.game.size);
-        return snake;
       })
     );
-    this.game.snakes = snakes;
+    return await this.gameService.updateGame(game);
   }
 
-  async setFood(): Promise<void> {
-    if (!this.game.size) {
-      throw new Error("Need size to assign Food");
+  async buildGame(gameId: number): Promise<GameDomain> {
+    const game = await this.gameService.findGame(gameId);
+    if (game && game.speed && game.size && game.users?.length) {
+      await this.setState(gameId, "Ready");
+      await this.setBoard(gameId);
+      await this.setSnakes(gameId);
+      return await this.setFood(gameId);
+    } else {
+      throw new Error("Some parameter still missing");
     }
-    const boundary = this.game.size - 1;
-    const food = await this.foodService.createNew(boundary);
-    this.game.food = food;
   }
 }

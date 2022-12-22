@@ -3,7 +3,7 @@ import { DBDeletion } from "../domain/types/types";
 
 export interface SnakeRepositoryInterface {
   save(snake: SnakeDomain): Promise<SnakeDomain>;
-  findById(id: number): Promise<SnakeDomain | null>;
+  findById(id: number): Promise<SnakeDomain>;
   deleteById(id: number): Promise<DBDeletion>;
   findAll(): Promise<SnakeDomain[]>;
 }

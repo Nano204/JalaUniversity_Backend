@@ -3,7 +3,7 @@ import { DBDeletion } from "../domain/types/types";
 
 export interface GameRepositoryInterface {
   save(game: GameDomain): Promise<GameDomain>;
-  findById(id: number): Promise<GameDomain | null>;
+  findById(id: number): Promise<GameDomain>;
   deleteById(id: number): Promise<DBDeletion>;
   findAll(): Promise<GameDomain[]>;
 }

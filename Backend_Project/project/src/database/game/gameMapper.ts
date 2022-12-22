@@ -4,6 +4,7 @@ import { GameState } from "../../domain/types/types";
 import { boardMapper } from "../board/boardMapper";
 import { snakeMapper } from "../snake/snakeMapper";
 import { userMapper } from "../user/userMapper";
+import { foodMapper } from "../food/foodMapper";
 
 export class gameMapper {
   static toDBEntity(game: GameDomain) {
@@ -23,7 +24,9 @@ export class gameMapper {
     if (game.users) {
       entityGame.users = game.users.map((user) => userMapper.toDBEntity(user));
     }
-    entityGame.food = JSON.stringify(game.food);
+    if (game.food) {
+      entityGame.food = foodMapper.toDBEntity(game.food);
+    }
     if (game.id) {
       return { ...entityGame, id: game.id };
     }
@@ -44,7 +47,9 @@ export class gameMapper {
     if (game.snakes) {
       workGame.snakes = game.snakes.map((snake) => snakeMapper.toWorkUnit(snake));
     }
-    workGame.food = game.food && JSON.parse(game.food);
+    if (game.food) {
+      workGame.food = foodMapper.toWorkUnit(game.food);
+    }
     if (game.id) {
       return { ...workGame, id: game.id };
     }

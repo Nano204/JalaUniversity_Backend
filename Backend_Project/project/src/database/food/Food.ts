@@ -8,5 +8,5 @@ export class Food {
   @Column()
   public position!: string;
   @OneToOne(() => Game, (game) => game.food)
-  public game!: Game | undefined;
+  public game!: Game;
 }

@@ -32,7 +32,7 @@ export default class SnakeService implements SnakeServiceInterface {
     return await this.snakeRepository.save(snake);
   }
 
-  async findSnake(id: number): Promise<SnakeDomain | null> {
+  async findSnake(id: number): Promise<SnakeDomain> {
     return await this.snakeRepository.findById(id);
   }
 
