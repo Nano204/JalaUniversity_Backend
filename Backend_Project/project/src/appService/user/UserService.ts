@@ -22,9 +22,16 @@ export default class UserService implements UserServiceInterface {
     user.maxScore = 0;
     return await this.userRepository.save(user);
   }
+  async updateUser(user: UserDomain): Promise<UserDomain> {
+    return await this.userRepository.save(user);
+  }
 
   async findUser(id: number): Promise<UserDomain> {
     return await this.userRepository.findById(id);
+  }
+
+  async findMaxScoreRanking(limit: number): Promise<UserDomain[]> {
+    return await this.userRepository.findMaxScoreRanking(limit);
   }
 
   async deleteUser(id: number): Promise<DBDeletion> {

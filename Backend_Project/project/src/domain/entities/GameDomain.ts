@@ -5,9 +5,9 @@ import { SnakeDomain } from "./SnakeDomain";
 import { UserDomain } from "./UserDomain";
 
 export default class GameDomain {
-  public readonly id!: number;
+  public id!: number;
   public state!: GameState;
-  public speed!: number;
+  public interval!: number;
   public size!: number;
   public users!: UserDomain[];
   public board!: BoardDomain;

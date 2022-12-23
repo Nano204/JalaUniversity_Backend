@@ -3,10 +3,20 @@ import container from "../../dependencies/ioc_config";
 import SERVICE_IDENTIFIER from "../../dependencies/identifiers";
 import { UserServiceInterface } from "../../appService/user/UserServiceInterface";
 
-
 const router = Router();
 
 const userService = container.get<UserServiceInterface>(SERVICE_IDENTIFIER.USER_SERVICE);
+
+router.get("/ranking/:limit", async (req, res) => {
+  try {
+    const { limit } = req.params;
+    const userRanking = await userService.findMaxScoreRanking(Number(limit));
+    if (userRanking.length) return res.status(200).json(userRanking);
+    return res.sendStatus(404);
+  } catch (error) {
+    return res.status(500).json({ error });
+  }
+});
 
 router.get("/find/:id", async (req, res) => {
   try {
@@ -55,5 +65,3 @@ router.delete("/delete/:id", async (req, res) => {
 });
 
 export default router;
-
-

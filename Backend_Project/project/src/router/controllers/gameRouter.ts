@@ -19,7 +19,7 @@ router.get("/find/:id", async (req, res) => {
 
 router.get("/find", async (req, res) => {
   try {
-    const findedGame = await gameService.findAllGame();
+    const findedGame = await gameService.findAllGames();
     if (findedGame.length) return res.status(200).json(findedGame);
     return res.sendStatus(404);
   } catch (error) {

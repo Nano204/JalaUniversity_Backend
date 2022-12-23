@@ -13,6 +13,7 @@ import { GameBehaviorServiceInterface } from "./GameBehaviorInterface";
 export default class GameBehaviorService implements GameBehaviorServiceInterface {
   private game;
   private boundary;
+  private interval: NodeJS.Timer | undefined;
   private snakeBehaviorService = new SnakeBehaviorService();
 
   private randomNumber = new RandomNumberSupportService().randomNumber;
@@ -42,6 +43,11 @@ export default class GameBehaviorService implements GameBehaviorServiceInterface
     return false;
   }
 
+  setGame(game: GameDomain): GameDomain {
+    this.game = game;
+    return game;
+  }
+
   newAvailablePosition(): Position {
     let newPosition: Position;
     let condition;
@@ -63,11 +69,13 @@ export default class GameBehaviorService implements GameBehaviorServiceInterface
     const { snakes, board } = this.game;
     const coordinates = board.coordinates;
     snakes.forEach((snake) => {
-      const { head } = snake;
-      coordinates[head.y][head.x] = "H";
-      snake.nodes.forEach((node) => {
-        coordinates[node.y][node.x] = "N";
-      });
+      if (snake.status == "Alive") {
+        const { head } = snake;
+        coordinates[head.y][head.x] = "H";
+        snake.nodes.forEach((node) => {
+          coordinates[node.y][node.x] = "N";
+        });
+      }
     });
     board.coordinates = coordinates;
     this.game.board = board;
@@ -98,14 +106,12 @@ export default class GameBehaviorService implements GameBehaviorServiceInterface
 
   private hasSnakeCollide(snake: SnakeDomain): boolean {
     let elementsOnSpace = 0;
-    console.log(this.getBlockedSpaces(), snake.head);
     this.getBlockedSpaces().forEach((space) => {
       const samePosition = this.comparePositions(snake.head, space);
       if (samePosition) {
         ++elementsOnSpace;
       }
     });
-    console.log(elementsOnSpace);
     if (elementsOnSpace > 1) {
       return true;
     }
@@ -121,17 +127,7 @@ export default class GameBehaviorService implements GameBehaviorServiceInterface
     return false;
   }
 
-  async visualizeBoard(): Promise<string> {
-    await this.clearBoard();
-    await this.locateFoodOnBoard();
-    await this.locateSnakesOnBoard();
-    const { board } = this.game;
-    // console.clear();
-    console.log(board.coordinates.join("\n"));
-    return board.coordinates.join("\n");
-  }
-
-  async clearBoard(): Promise<GameDomain> {
+  private async clearBoard(): Promise<GameDomain> {
     const { board } = this.game;
     board.coordinates.forEach((row) => {
       row.fill("0");
@@ -140,22 +136,27 @@ export default class GameBehaviorService implements GameBehaviorServiceInterface
     return await this.gameService.updateGame(this.game);
   }
 
-  async changeFoodPosition(): Promise<GameDomain> {
+  private async changeFoodPosition(): Promise<GameDomain> {
     const { food } = this.game;
     food.position = this.newAvailablePosition();
     this.game.food = food;
     return await this.gameService.updateGame(this.game);
   }
 
-  async moveFrame(): Promise<GameDomain> {
+  private async moveFrame(): Promise<GameDomain> {
     this.game = await this.gameService.findGame(this.game.id);
     const { snakes } = this.game;
     await Promise.all(
       snakes.map(async (snake, index) => {
-        snakes[index] = await this.snakeBehaviorService.moveStep(snake.id, this.boundary);
-        if (this.hasSnakeEaten(snake)) {
-          snakes[index] = await this.snakeBehaviorService.growUp(snake.id);
-          await this.changeFoodPosition();
+        if (snake.status == "Alive") {
+          snakes[index] = await this.snakeBehaviorService.moveStep(
+            snake.id,
+            this.boundary
+          );
+          if (this.hasSnakeEaten(snake)) {
+            snakes[index] = await this.snakeBehaviorService.growUp(snake.id);
+            await this.changeFoodPosition();
+          }
         }
       })
     );
@@ -166,7 +167,54 @@ export default class GameBehaviorService implements GameBehaviorServiceInterface
         }
       })
     );
-    this.game.snakes = snakes.filter((snake) => snake.status !== "Death");
-    return await this.gameService.updateGame(this.game);
+    this.game = await this.gameService.updateGame(this.game);
+    return this.game;
+  }
+
+  async visualizeBoard(): Promise<string> {
+    await this.clearBoard();
+    await this.locateFoodOnBoard();
+    await this.locateSnakesOnBoard();
+    const { board } = this.game;
+    const boardImage = JSON.stringify(board.coordinates);
+    console.clear();
+    console.log(board.coordinates.join("\n"));
+    return boardImage;
+  }
+
+  async initialize(): Promise<GameDomain> {
+    this.interval = setInterval(async () => {
+      await this.moveFrame();
+      await this.visualizeBoard();
+      if (!this.game.snakes.length) {
+        clearInterval(this.interval);
+        this.game.state = "Ended";
+        await this.gameService.updateGame(this.game);
+      }
+    }, this.game.interval);
+    this.game.state = "Playing";
+    this.game = await this.gameService.updateGame(this.game);
+    return this.game;
+  }
+
+  async stop(): Promise<GameDomain> {
+    clearInterval(this.interval);
+    this.game.state = "Ended";
+    this.game = await this.gameService.updateGame(this.game);
+    return this.game;
+  }
+
+  async reset(): Promise<GameDomain> {
+    clearInterval(this.interval);
+    const { snakes } = this.game;
+    this.game.snakes = await Promise.all(
+      snakes.map(async (snake) => {
+        return await this.snakeBehaviorService.restartSnake(snake.id, this.boundary);
+      })
+    );
+    await this.changeFoodPosition();
+    this.game.state = "Ready";
+    this.game = await this.gameService.updateGame(this.game);
+    return this.game;
   }
 }

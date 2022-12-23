@@ -11,7 +11,7 @@ export class FoodRepository implements FoodRepositoryInterface {
   async save(food: FoodDomain): Promise<FoodDomain> {
     const repository = AppDataSource.getRepository(Food);
     const dbFood = foodMapper.toDBEntity(food);
-    const responseFood = await repository.save(dbFood);
+    const responseFood = await repository.save(dbFood as Food);
     return foodMapper.toWorkUnit(responseFood);
   }
 

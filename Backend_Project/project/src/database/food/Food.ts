@@ -4,7 +4,7 @@ import { Game } from "../game/Game";
 @Entity()
 export class Food {
   @PrimaryGeneratedColumn()
-  public readonly id!: number;
+  public id!: number;
   @Column()
   public position!: string;
   @OneToOne(() => Game, (game) => game.food)

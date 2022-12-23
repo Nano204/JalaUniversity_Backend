@@ -38,4 +38,16 @@ export default class UserRepository implements UserRepositoryInterface {
     });
     return responseUserArray;
   }
+
+  async findMaxScoreRanking(limit: number): Promise<UserDomain[]> {
+    const repository = AppDataSource.getRepository(User);
+    const responseUserArray = repository
+      .find({ order: { maxScore: "desc" }, skip: 0, take: limit })
+      .then((boardsArray) => {
+        return boardsArray.map((element) => {
+          return userMapper.toWorkUnit(element);
+        });
+      });
+    return responseUserArray;
+  }
 }

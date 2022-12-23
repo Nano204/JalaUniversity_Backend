@@ -15,9 +15,9 @@ import { User } from "../user/User";
 @Entity()
 export class Game {
   @PrimaryGeneratedColumn()
-  public readonly id!: number;
+  public id!: number;
   @Column({ nullable: true })
-  public speed!: number;
+  public interval!: number;
   @Column({ nullable: true })
   public state!: string;
   @Column({ nullable: true })

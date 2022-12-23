@@ -36,6 +36,15 @@ export default class SnakeService implements SnakeServiceInterface {
     return await this.snakeRepository.findById(id);
   }
 
+  async findSnakeOwnerId(id: number): Promise<number> {
+    const snake = await this.snakeRepository.findByIdWithRelations(id);
+    const userId = snake.user?.id;
+    if (!userId) {
+      throw new Error("Snake owner not found");
+    }
+    return userId;
+  }
+
   async deleteSnake(id: number): Promise<DBDeletion> {
     return await this.snakeRepository.deleteById(id);
   }

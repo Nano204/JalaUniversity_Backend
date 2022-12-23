@@ -9,8 +9,11 @@ import { foodMapper } from "../food/foodMapper";
 export class gameMapper {
   static toDBEntity(game: GameDomain) {
     const entityGame: Game = new Game();
+    if (game.id) {
+      entityGame.id = game.id;
+    }
     entityGame.state = game.state;
-    entityGame.speed = game.speed;
+    entityGame.interval = game.interval;
     entityGame.size = game.size;
     if (game.users) {
       entityGame.users = game.users.map((user) => userMapper.toDBEntity(user));
@@ -27,16 +30,16 @@ export class gameMapper {
     if (game.food) {
       entityGame.food = foodMapper.toDBEntity(game.food);
     }
-    if (game.id) {
-      return { ...entityGame, id: game.id };
-    }
     return entityGame;
   }
 
   static toWorkUnit(game: Game) {
     const workGame: GameDomain = new GameDomain();
+    if (game.id) {
+      workGame.id = game.id;
+    }
     workGame.state = game.state as GameState;
-    workGame.speed = game.speed;
+    workGame.interval = game.interval;
     workGame.size = game.size;
     if (game.users) {
       workGame.users = game.users.map((user) => userMapper.toWorkUnit(user));
@@ -49,9 +52,6 @@ export class gameMapper {
     }
     if (game.food) {
       workGame.food = foodMapper.toWorkUnit(game.food);
-    }
-    if (game.id) {
-      return { ...workGame, id: game.id };
     }
     return workGame;
   }

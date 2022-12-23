@@ -5,6 +5,6 @@ const app = server;
 const port = 3000;
 
 app.listen(port, () => {
-  new DBInit().initializeDB(); //Pending of dependecies inversion
+  new DBInit().initializeDB();
   console.log(`Example app listening on port ${port}`);
 });
