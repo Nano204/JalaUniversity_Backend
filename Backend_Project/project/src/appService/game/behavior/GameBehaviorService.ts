@@ -186,7 +186,8 @@ export default class GameBehaviorService implements GameBehaviorServiceInterface
     this.interval = setInterval(async () => {
       await this.moveFrame();
       await this.visualizeBoard();
-      if (!this.game.snakes.length) {
+      const snakesStatus = this.game.snakes.map((snake) => snake.status);
+      if (!snakesStatus.includes("Alive")) {
         clearInterval(this.interval);
         this.game.state = "Ended";
         await this.gameService.updateGame(this.game);
@@ -199,7 +200,7 @@ export default class GameBehaviorService implements GameBehaviorServiceInterface
 
   async stop(): Promise<GameDomain> {
     clearInterval(this.interval);
-    this.game.state = "Ended";
+    this.game.state = "Paused";
     this.game = await this.gameService.updateGame(this.game);
     return this.game;
   }

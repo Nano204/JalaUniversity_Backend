@@ -16,7 +16,7 @@ import { UserDomain } from "../domain/entities/UserDomain";
 import { Direction } from "../domain/types/types";
 
 describe("Mappers testing", () => {
-  it("Should return a Board database entity when BoardDomain given and vice versa", async () => {
+  it("Should return a Board database entity when BoardDomain given and vice versa", () => {
     const testBoard: BoardDomain = new BoardDomain();
     testBoard.id = 99;
     testBoard.coordinates = [[]];
@@ -28,7 +28,7 @@ describe("Mappers testing", () => {
     expect(boardWorkUnit instanceof BoardDomain).toBeTruthy();
   });
 
-  it("Should return a Food database entity when FoodDomain given and vice versa", async () => {
+  it("Should return a Food database entity when FoodDomain given and vice versa", () => {
     const testFood: FoodDomain = new FoodDomain();
     testFood.game = new GameDomain();
     testFood.id = 99;
@@ -40,7 +40,7 @@ describe("Mappers testing", () => {
     expect(foodWorkUnit instanceof FoodDomain).toBeTruthy();
   });
 
-  it("Should return a Snake database entity when SnakeDomain given and vice versa", async () => {
+  it("Should return a Snake database entity when SnakeDomain given and vice versa", () => {
     const testSnake: SnakeDomain = new SnakeDomain();
     testSnake.direction = Direction.up;
     testSnake.game = new GameDomain();
@@ -58,7 +58,7 @@ describe("Mappers testing", () => {
     expect(snakeWorkUnit instanceof SnakeDomain).toBeTruthy();
   });
 
-  it("Should return a User database entity when UserDomain given and vice versa", async () => {
+  it("Should return a User database entity when UserDomain given and vice versa", () => {
     const testUser: UserDomain = new UserDomain();
     testUser.firstName = "Player";
     testUser.lastName = "Tester";
@@ -73,7 +73,7 @@ describe("Mappers testing", () => {
     expect(userWorkUnit instanceof UserDomain).toBeTruthy();
   });
 
-  it("Should return a Game database entity when GameDomain given and vice versa", async () => {
+  it("Should return a Game database entity when GameDomain given and vice versa", () => {
     const testGame: GameDomain = new GameDomain();
     testGame.board = new BoardDomain();
     testGame.food = new FoodDomain();

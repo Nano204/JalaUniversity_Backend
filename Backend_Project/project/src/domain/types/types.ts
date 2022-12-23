@@ -1,7 +1,7 @@
 export type DBDeletion = { affected: number | null | undefined };
 export type Position = { x: number; y: number };
 export type SpaceStatus = "0" | "H" | "N" | "F";
-export type GameState = "Ready" | "Playing" | "Ended";
+export type GameState = "Ready" | "Playing" | "Paused" | "Ended";
 export type SnakeStatus = "Alive" | "Death";
 
 export enum Direction {
