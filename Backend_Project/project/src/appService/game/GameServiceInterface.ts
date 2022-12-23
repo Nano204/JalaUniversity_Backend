@@ -6,5 +6,5 @@ export interface GameServiceInterface {
   updateGame(game: GameDomain): Promise<GameDomain>;
   findGame(id: number): Promise<GameDomain>;
   deleteGame(id: number): Promise<DBDeletion>;
-  findAllGame(): Promise<GameDomain[]>;
+  findAllGames(): Promise<GameDomain[]>;
 }

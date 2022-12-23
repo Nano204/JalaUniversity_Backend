@@ -30,7 +30,6 @@ export default class FoodService implements FoodServiceInterface {
 
   async updateFood(food: FoodDomain): Promise<FoodDomain> {
     const food1 = await this.foodRepository.save(food);
-    console.log(food1);
     return food1;
   }
 

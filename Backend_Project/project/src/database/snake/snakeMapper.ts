@@ -6,6 +6,9 @@ import { Snake } from "./Snake";
 export class snakeMapper {
   static toDBEntity(snake: SnakeDomain) {
     const entitySnake: Snake = new Snake();
+    if (snake.id) {
+      entitySnake.id = snake.id;
+    }
     entitySnake.head = JSON.stringify(snake.head);
     entitySnake.direction = snake.direction;
     entitySnake.status = snake.status;
@@ -18,18 +21,22 @@ export class snakeMapper {
     if (snake.game) {
       entitySnake.game = gameMapper.toDBEntity(snake.game);
     }
-    if (snake.id) {
-      return { ...entitySnake, id: snake.id };
-    }
     return entitySnake;
   }
 
   static toWorkUnit(snake: Snake) {
     const workSnake: SnakeDomain = new SnakeDomain();
-    workSnake.head = JSON.parse(snake.head);
+    if (snake.id) {
+      workSnake.id = snake.id;
+    }
+    if (snake.head) {
+      workSnake.head = JSON.parse(snake.head);
+    }
     workSnake.direction = snake.direction;
     workSnake.status = snake.status;
-    workSnake.nodes = JSON.parse(snake.nodes);
+    if (snake.head) {
+      workSnake.nodes = JSON.parse(snake.nodes);
+    }
     workSnake.length = snake.length;
     if (snake.nextNodeSpace) {
       workSnake.nextNodeSpace = JSON.parse(snake.nextNodeSpace);
@@ -39,9 +46,6 @@ export class snakeMapper {
     }
     if (snake.game) {
       workSnake.game = gameMapper.toWorkUnit(snake.game);
-    }
-    if (snake.id) {
-      return { ...workSnake, id: snake.id };
     }
     return workSnake;
   }

@@ -14,7 +14,7 @@ import { Snake } from "../snake/Snake";
 @Unique(["firstName", "lastName"])
 export class User {
   @PrimaryGeneratedColumn()
-  public readonly id!: number;
+  public id!: number;
   @Column()
   public firstName!: string;
   @Column()

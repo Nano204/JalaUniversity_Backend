@@ -29,6 +29,18 @@ export class SnakeRepository implements SnakeRepositoryInterface {
     return snakeMapper.toWorkUnit(responseSnake);
   }
 
+  async findByIdWithRelations(id: number): Promise<SnakeDomain> {
+    const repository = AppDataSource.getRepository(Snake);
+    const findedSnake = await repository.findOne({
+      where: { id },
+      relations: ["user", "game"],
+    });
+    if (!findedSnake) {
+      throw new Error("Not found");
+    }
+    return snakeMapper.toWorkUnit(findedSnake);
+  }
+  
   async deleteById(id: number): Promise<DBDeletion> {
     const repository = AppDataSource.getRepository(Snake);
     const deleted = await repository.delete({ id });

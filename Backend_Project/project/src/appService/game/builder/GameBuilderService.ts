@@ -64,7 +64,7 @@ export default class GameBuilder implements GameBuilderInterface {
 
   async setSpeed(gameId: number, speed: number): Promise<GameDomain> {
     const game = await this.gameService.findGame(gameId);
-    game.speed = speed;
+    game.interval = speed;
     return await this.gameService.updateGame(game);
   }
 
@@ -91,7 +91,7 @@ export default class GameBuilder implements GameBuilderInterface {
 
   async buildGame(gameId: number): Promise<GameDomain> {
     const game = await this.gameService.findGame(gameId);
-    if (game && game.speed && game.size && game.users?.length) {
+    if (game && game.interval && game.size && game.users?.length) {
       await this.setState(gameId, "Ready");
       await this.setBoard(gameId);
       await this.setSnakes(gameId);

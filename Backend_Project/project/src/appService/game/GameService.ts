@@ -32,7 +32,7 @@ export default class GameService implements GameServiceInterface {
     return await this.gameRepository.deleteById(id);
   }
 
-  async findAllGame(): Promise<GameDomain[]> {
+  async findAllGames(): Promise<GameDomain[]> {
     return await this.gameRepository.findAll();
   }
 }

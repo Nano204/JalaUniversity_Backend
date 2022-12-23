@@ -9,6 +9,17 @@ const snakeService = container.get<SnakeServiceInterface>(
   SERVICE_IDENTIFIER.SNAKE_SERVICE
 );
 
+router.get("/find_owner/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const findedOwnerId = await snakeService.findSnakeOwnerId(Number(id));
+    if (findedOwnerId) return res.status(200).json(findedOwnerId);
+    return res.sendStatus(404);
+  } catch (error) {
+    return res.status(500).json({ error });
+  }
+});
+
 router.get("/find/:id", async (req, res) => {
   try {
     const { id } = req.params;

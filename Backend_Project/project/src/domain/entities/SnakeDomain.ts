@@ -3,7 +3,7 @@ import GameDomain from "./GameDomain";
 import { UserDomain } from "./UserDomain";
 
 export class SnakeDomain {
-  public readonly id!: number;
+  public id!: number;
   public head!: Position;
   public direction!: Direction;
   public status!: SnakeStatus;

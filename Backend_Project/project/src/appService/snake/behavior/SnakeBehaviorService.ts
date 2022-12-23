@@ -1,6 +1,7 @@
 import SERVICE_IDENTIFIER from "../../../dependencies/identifiers";
 import container from "../../../dependencies/ioc_config";
 import { SnakeDomain } from "../../../domain/entities/SnakeDomain";
+import { UserDomain } from "../../../domain/entities/UserDomain";
 import { Direction } from "../../../domain/types/types";
 import RandomNumberSupportService from "../../support/RandomNumberUnitOfWorkService";
 import { UserServiceInterface } from "../../user/UserServiceInterface";
@@ -51,6 +52,16 @@ export default class SnakeBehaviorService implements SnakeBehaviorServiceInterfa
       return await this.snakeService.updateSnake(snake);
     }
     return await this.snakeService.updateSnake(snake);
+  }
+
+  private async updateOwnerMaxScore(snakeId: number): Promise<UserDomain> {
+    const snake = await this.snakeService.findSnake(snakeId);
+    const ownerId = await this.snakeService.findSnakeOwnerId(snakeId);
+    const user = await this.userService.findUser(ownerId);
+    if (user.maxScore < snake.length) {
+      user.maxScore = snake.length;
+    }
+    return await this.userService.updateUser(user);
   }
 
   async setOwner(snakeId: number, ownerId: number): Promise<SnakeDomain> {
@@ -108,7 +119,9 @@ export default class SnakeBehaviorService implements SnakeBehaviorServiceInterfa
       ++snake.length;
       snake.nodes.push(snake.nextNodeSpace);
     }
-    return await this.snakeService.updateSnake(snake);
+    const growedSnake = await this.snakeService.updateSnake(snake);
+    await this.updateOwnerMaxScore(snakeId);
+    return growedSnake;
   }
 
   async restartSnake(snakeId: number, boundary: number): Promise<SnakeDomain> {
@@ -126,6 +139,9 @@ export default class SnakeBehaviorService implements SnakeBehaviorServiceInterfa
   async killSnake(snakeId: number): Promise<SnakeDomain> {
     const snake = await this.snakeService.findSnake(snakeId);
     snake.status = "Death";
+    snake.head = { x: NaN, y: NaN };
+    snake.nodes = [];
+    await this.updateOwnerMaxScore(snakeId);
     return await this.snakeService.updateSnake(snake);
   }
 
