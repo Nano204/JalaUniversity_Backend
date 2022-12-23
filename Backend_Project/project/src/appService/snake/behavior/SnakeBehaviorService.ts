@@ -2,7 +2,7 @@ import SERVICE_IDENTIFIER from "../../../dependencies/identifiers";
 import container from "../../../dependencies/ioc_config";
 import { SnakeDomain } from "../../../domain/entities/SnakeDomain";
 import { UserDomain } from "../../../domain/entities/UserDomain";
-import { Direction } from "../../../domain/types/types";
+import { Direction, Position } from "../../../domain/types/types";
 import RandomNumberSupportService from "../../support/RandomNumberUnitOfWorkService";
 import { UserServiceInterface } from "../../user/UserServiceInterface";
 import { SnakeServiceInterface } from "../SnakeServiceInterface";
@@ -19,16 +19,30 @@ export default class SnakeBehaviorService implements SnakeBehaviorServiceInterfa
 
   private randomNumber = new RandomNumberSupportService().randomNumber;
 
-  private areNotContaryDirection(
-    currentDirection: Direction,
-    newDirection: Direction
-  ): boolean {
-    return !(
-      (currentDirection == Direction.up && newDirection == Direction.down) ||
-      (currentDirection == Direction.down && newDirection == Direction.up) ||
-      (currentDirection == Direction.left && newDirection == Direction.right) ||
-      (currentDirection == Direction.right && newDirection == Direction.left)
-    );
+  comparePositions(position1: Position, position2: Position): boolean {
+    const { x: x1, y: y1 } = position1;
+    const { x: x2, y: y2 } = position2;
+    if (x1 == x2 && y1 == y2) {
+      return true;
+    }
+    return false;
+  }
+
+  private nextPosition(
+    position: Position,
+    direction: Direction,
+    boundary: number
+  ): Position {
+    if (direction == Direction.up) {
+      position.y = position.y < boundary ? ++position.y : 0;
+    } else if (direction == Direction.down) {
+      position.y = position.y > 0 ? --position.y : boundary;
+    } else if (direction == Direction.right) {
+      position.x = position.x < boundary ? ++position.x : 0;
+    } else if (direction == Direction.left) {
+      position.x = position.x > 0 ? --position.x : boundary;
+    }
+    return position;
   }
 
   private async setNextNodeSpace(snakeId: number): Promise<SnakeDomain> {
@@ -64,6 +78,40 @@ export default class SnakeBehaviorService implements SnakeBehaviorServiceInterfa
     return await this.userService.updateUser(user);
   }
 
+  private validateDirectionAvailable(snake: SnakeDomain, boundary: number): boolean {
+    const { head, direction, nodes } = snake;
+    const position = { ...head };
+    if (!nodes.length) {
+      return true;
+    }
+    const nextPosition = this.nextPosition(position, direction, boundary);
+    const directionToNode = this.comparePositions(nextPosition, nodes[0]);
+    if (directionToNode) {
+      return false;
+    }
+    return true;
+  }
+
+  contraryDirection(direction: Direction): Direction {
+    if (direction == Direction.up) {
+      return Direction.down;
+    }
+    if (direction == Direction.down) {
+      return Direction.up;
+    }
+    if (direction == Direction.left) {
+      return Direction.right;
+    }
+    if (direction == Direction.right) {
+      return Direction.left;
+    }
+    return direction;
+  }
+
+  directionMapper(direction: "up" | "down" | "left" | "right"): Direction {
+    return Direction[direction];
+  }
+
   async setOwner(snakeId: number, ownerId: number): Promise<SnakeDomain> {
     const snake = await this.snakeService.findSnake(snakeId);
     const user = await this.userService.findUser(ownerId);
@@ -71,19 +119,9 @@ export default class SnakeBehaviorService implements SnakeBehaviorServiceInterfa
     return await this.snakeService.updateSnake(snake);
   }
 
-  async setDirection(
-    snakeId: number,
-    direction: "up" | "down" | "left" | "right"
-  ): Promise<SnakeDomain> {
+  async setDirection(snakeId: number, direction: Direction): Promise<SnakeDomain> {
     const snake = await this.snakeService.findSnake(snakeId);
-
-    const directionValidation = this.areNotContaryDirection(
-      snake.direction,
-      Direction[direction]
-    );
-    if (directionValidation) {
-      snake.direction = Direction[direction];
-    }
+    snake.direction = direction;
     return await this.snakeService.updateSnake(snake);
   }
 
@@ -96,20 +134,16 @@ export default class SnakeBehaviorService implements SnakeBehaviorServiceInterfa
   }
 
   async moveStep(snakeId: number, boundary: number): Promise<SnakeDomain> {
+    let snake = await this.snakeService.findSnake(snakeId);
+    const availableDirectionCheck = this.validateDirectionAvailable(snake, boundary);
     await this.setNextNodeSpace(snakeId);
     await this.moveFollowingNodes(snakeId);
-    const snake = await this.snakeService.findSnake(snakeId);
-    const headPostion = snake.head;
-    if (snake.direction == Direction.up) {
-      headPostion.y = headPostion.y < boundary ? ++headPostion.y : 0;
-    } else if (snake.direction == Direction.down) {
-      headPostion.y = headPostion.y > 0 ? --headPostion.y : boundary;
-    } else if (snake.direction == Direction.right) {
-      headPostion.x = headPostion.x < boundary ? ++headPostion.x : 0;
-    } else if (snake.direction == Direction.left) {
-      headPostion.x = headPostion.x > 0 ? --headPostion.x : boundary;
+    snake = await this.snakeService.findSnake(snakeId);
+    if (!availableDirectionCheck) {
+      const contraryDirection = this.contraryDirection(snake.direction);
+      snake = await this.setDirection(snake.id, contraryDirection);
     }
-    snake.head = headPostion;
+    snake.head = this.nextPosition(snake.head, snake.direction, boundary);
     return await this.snakeService.updateSnake(snake);
   }
 
@@ -149,6 +183,6 @@ export default class SnakeBehaviorService implements SnakeBehaviorServiceInterfa
     const snake = await this.snakeService.createNew();
     await this.setHeadPosition(snake.id, boundary);
     await this.setOwner(snake.id, ownerId);
-    return (await this.restartSnake(snake.id, boundary)) || snake;
+    return await this.restartSnake(snake.id, boundary);
   }
 }

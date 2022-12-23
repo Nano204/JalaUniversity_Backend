@@ -25,11 +25,11 @@ router.post("/set_size/:gameId/:size", async (req, res) => {
   }
 });
 
-router.post("/set_speed/:gameId/:speed", async (req, res) => {
+router.post("/set_speed/:gameId/:interval", async (req, res) => {
   try {
-    const { gameId, speed } = req.params;
+    const { gameId, interval } = req.params;
     const gameBuilder = new GameBuilder();
-    const savedGame = await gameBuilder.setSpeed(Number(gameId), Number(speed));
+    const savedGame = await gameBuilder.setInterval(Number(gameId), Number(interval));
     return res.status(201).json(savedGame);
   } catch (error) {
     return res.status(500).json({ error });
