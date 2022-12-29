@@ -2,7 +2,8 @@ import { injectable } from "inversify";
 import IBoard from "../../domain/entities/BoardDomain";
 import { DBDeletion } from "../../domain/types/types";
 import { BoardRepositoryInterface } from "../../domainRepository/BoardRepositoryInterface";
-import { AppDataSource } from "../DBConnection"; // Revisar
+import { AppDataSource } from "../DBConnection";
+import IdSetterRepository from "../idBuilder/IdSetterRepository";
 import { Board } from "./Board";
 import { boardMapper } from "./boardMapper";
 
@@ -11,9 +12,13 @@ export default class BoardRepository implements BoardRepositoryInterface {
   async save(board: IBoard): Promise<IBoard> {
     const repository = AppDataSource.getRepository(Board);
     const dbBoard = boardMapper.toDBEntity(board);
-    const responseBoard = await repository.save(dbBoard);
-    return boardMapper.toWorkUnit(responseBoard);
+    if (!dbBoard.id) {
+      dbBoard.id = await new IdSetterRepository().getNewId("Board");
+    }
+    const savedBoard = await repository.save(dbBoard);
+    return boardMapper.toWorkUnit(savedBoard);
   }
+
   async findById(id: number): Promise<IBoard> {
     const repository = AppDataSource.getRepository(Board);
     const responseBoard = await repository.findOneBy({ id });
@@ -31,11 +36,12 @@ export default class BoardRepository implements BoardRepositoryInterface {
 
   async findAll(): Promise<IBoard[]> {
     const repository = AppDataSource.getRepository(Board);
-    const responseBoardArray = repository.find().then((boardsArray) => {
-      return boardsArray.map((element) => {
+    const responsePromiseArray = await repository.find();
+    const responseBoardArray = await Promise.all(
+      responsePromiseArray.map((element) => {
         return boardMapper.toWorkUnit(element);
-      });
-    });
+      })
+    );
     return responseBoardArray;
   }
 }

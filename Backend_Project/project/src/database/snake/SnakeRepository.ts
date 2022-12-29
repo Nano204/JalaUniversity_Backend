@@ -3,21 +3,23 @@ import { SnakeDomain } from "../../domain/entities/SnakeDomain";
 import { DBDeletion } from "../../domain/types/types";
 import { SnakeRepositoryInterface } from "../../domainRepository/SnakeRepositoryInterface";
 import { AppDataSource } from "../DBConnection";
+import IdSetterRepository from "../idBuilder/IdSetterRepository";
 import { Snake } from "./Snake";
 import { snakeMapper } from "./snakeMapper";
 
 @injectable()
 export class SnakeRepository implements SnakeRepositoryInterface {
   async save(snake: SnakeDomain): Promise<SnakeDomain> {
-    const repository = AppDataSource.getRepository(Snake);
-    const dbSnake = snakeMapper.toDBEntity(snake);
-    let responseSnake;
-    if (snake.id) {
-      responseSnake = await repository.save({ ...dbSnake, id: snake.id });
-    } else {
-      responseSnake = await repository.save(dbSnake);
+    const repository = AppDataSource.getMongoRepository(Snake);
+    if (!snake.id) {
+      snake.id = await new IdSetterRepository().getNewId("Snake");
+      const dbSnake = snakeMapper.toDBEntity(snake);
+      const savedSnake = await repository.save(dbSnake);
+      return snakeMapper.toWorkUnit(savedSnake);
     }
-    return snakeMapper.toWorkUnit(responseSnake);
+    const dbSnake = snakeMapper.toDBEntity(snake);
+    await repository.update({ id: snake.id }, dbSnake);
+    return snakeMapper.toWorkUnit(dbSnake);
   }
 
   async findById(id: number): Promise<SnakeDomain> {
@@ -40,7 +42,7 @@ export class SnakeRepository implements SnakeRepositoryInterface {
     }
     return snakeMapper.toWorkUnit(findedSnake);
   }
-  
+
   async deleteById(id: number): Promise<DBDeletion> {
     const repository = AppDataSource.getRepository(Snake);
     const deleted = await repository.delete({ id });
@@ -49,11 +51,12 @@ export class SnakeRepository implements SnakeRepositoryInterface {
 
   async findAll(): Promise<SnakeDomain[]> {
     const repository = AppDataSource.getRepository(Snake);
-    const responseSnakeArray = repository.find().then((boardsArray) => {
-      return boardsArray.map((element) => {
+    const responsePromiseArray = await repository.find();
+    const responseSnakeArray = await Promise.all(
+      responsePromiseArray.map((element) => {
         return snakeMapper.toWorkUnit(element);
-      });
-    });
+      })
+    );
     return responseSnakeArray;
   }
 }

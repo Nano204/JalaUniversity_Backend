@@ -4,7 +4,7 @@ import { Direction } from "../../domain/types/types";
 
 const router = Router();
 
-router.post("/set_owner:snakeId/:ownerId", async (req, res) => {
+router.post("/set_owner/:snakeId/:ownerId", async (req, res) => {
   try {
     const { snakeId, ownerId } = req.params;
     const snakeBehaviorService = new SnakeBehaviorService();

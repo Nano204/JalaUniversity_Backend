@@ -1,17 +1,29 @@
-import { AppDataSource } from "../DBConnection"; // Revisar
-import { User } from "./User"; //Revisar
+import { AppDataSource } from "../DBConnection";
+import { User } from "./User";
 import { injectable } from "inversify";
 import { DBDeletion } from "../../domain/types/types";
 import { UserRepositoryInterface } from "../../domainRepository/UserRepositoryInterface";
 import { UserDomain } from "../../domain/entities/UserDomain";
 import { userMapper } from "./userMapper";
+import IdSetterRepository from "../idBuilder/IdSetterRepository";
 
 @injectable()
 export default class UserRepository implements UserRepositoryInterface {
   async save(user: UserDomain): Promise<UserDomain> {
     const repository = AppDataSource.getRepository(User);
-    const savedUser = await repository.save(userMapper.toDBEntity(user));
-    return userMapper.toWorkUnit(savedUser);
+    const dbUser = userMapper.toDBEntity(user);
+    if (!dbUser.id) {
+      dbUser.id = await new IdSetterRepository().getNewId("User");
+      const savedUser = await repository.save(dbUser);
+      return userMapper.toWorkUnit(savedUser);
+    }
+    const findedUser = await repository.findOneBy({ id: dbUser.id });
+    if (findedUser) {
+      const savedUser = await repository.save(findedUser);
+      return userMapper.toWorkUnit(savedUser);
+    } else {
+      throw new Error("Not found");
+    }
   }
 
   async findById(id: number): Promise<UserDomain> {
@@ -31,23 +43,27 @@ export default class UserRepository implements UserRepositoryInterface {
 
   async findAll(): Promise<UserDomain[]> {
     const repository = AppDataSource.getRepository(User);
-    const responseUserArray = repository.find().then((boardsArray) => {
-      return boardsArray.map((element) => {
+    const responsePromiseArray = await repository.find();
+    const responseUserArray = await Promise.all(
+      responsePromiseArray.map((element) => {
         return userMapper.toWorkUnit(element);
-      });
-    });
+      })
+    );
     return responseUserArray;
   }
 
   async findMaxScoreRanking(limit: number): Promise<UserDomain[]> {
     const repository = AppDataSource.getRepository(User);
-    const responseUserArray = repository
-      .find({ order: { maxScore: "desc" }, skip: 0, take: limit })
-      .then((boardsArray) => {
-        return boardsArray.map((element) => {
-          return userMapper.toWorkUnit(element);
-        });
-      });
+    const responsePromiseArray = await repository.find({
+      order: { maxScore: "desc" },
+      skip: 0,
+      take: limit,
+    });
+    const responseUserArray = await Promise.all(
+      responsePromiseArray.map((element) => {
+        return userMapper.toWorkUnit(element);
+      })
+    );
     return responseUserArray;
   }
 }

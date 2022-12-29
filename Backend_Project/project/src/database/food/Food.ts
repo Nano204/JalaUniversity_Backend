@@ -1,12 +1,16 @@
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from "typeorm";
-import { Game } from "../game/Game";
+import { Column, Entity, ObjectID, ObjectIdColumn } from "typeorm";
 
 @Entity()
 export class Food {
-  @PrimaryGeneratedColumn()
+  @ObjectIdColumn()
+  public _id!: ObjectID;
+
+  @Column({ unique: true, nullable:false })
   public id!: number;
+
   @Column()
   public position!: string;
-  @OneToOne(() => Game, (game) => game.food)
-  public game!: Game;
+  
+  @Column()
+  public gameId!: number;
 }

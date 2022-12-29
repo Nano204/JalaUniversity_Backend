@@ -3,6 +3,7 @@ import { FoodDomain } from "../../domain/entities/FoodDomain";
 import { DBDeletion } from "../../domain/types/types";
 import { FoodRepositoryInterface } from "../../domainRepository/FoodRepositoryInventory";
 import { AppDataSource } from "../DBConnection";
+import IdSetterRepository from "../idBuilder/IdSetterRepository";
 import { Food } from "./Food";
 import { foodMapper } from "./foodMapper";
 
@@ -11,8 +12,11 @@ export class FoodRepository implements FoodRepositoryInterface {
   async save(food: FoodDomain): Promise<FoodDomain> {
     const repository = AppDataSource.getRepository(Food);
     const dbFood = foodMapper.toDBEntity(food);
-    const responseFood = await repository.save(dbFood as Food);
-    return foodMapper.toWorkUnit(responseFood);
+    if (!dbFood.id) {
+      dbFood.id = await new IdSetterRepository().getNewId("Food");
+    }
+    const savedFood = await repository.save(dbFood);
+    return foodMapper.toWorkUnit(savedFood);
   }
 
   async findById(id: number): Promise<FoodDomain> {
@@ -32,11 +36,12 @@ export class FoodRepository implements FoodRepositoryInterface {
 
   async findAll(): Promise<FoodDomain[]> {
     const repository = AppDataSource.getRepository(Food);
-    const responseFoodsArray = repository.find().then((foodsArray) => {
-      return foodsArray.map((element) => {
+    const responsePromiseArray = await repository.find();
+    const responseBoardArray = await Promise.all(
+      responsePromiseArray.map((element) => {
         return foodMapper.toWorkUnit(element);
-      });
-    });
-    return responseFoodsArray;
+      })
+    );
+    return responseBoardArray;
   }
 }
