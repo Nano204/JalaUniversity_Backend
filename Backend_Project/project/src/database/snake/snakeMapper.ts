@@ -1,5 +1,8 @@
 import { SnakeDomain } from "../../domain/entities/SnakeDomain";
+import { AppDataSource } from "../DBConnection";
+import { Game } from "../game/Game";
 import { gameMapper } from "../game/gameMapper";
+import { User } from "../user/User";
 import { userMapper } from "../user/userMapper";
 import { Snake } from "./Snake";
 
@@ -16,15 +19,15 @@ export class snakeMapper {
     entitySnake.length = snake.length;
     entitySnake.nextNodeSpace = JSON.stringify(snake.nextNodeSpace);
     if (snake.user) {
-      entitySnake.user = userMapper.toDBEntity(snake.user);
+      entitySnake.userId = snake.user.id;
     }
     if (snake.game) {
-      entitySnake.game = gameMapper.toDBEntity(snake.game);
+      entitySnake.gameId = snake.game.id;
     }
     return entitySnake;
   }
 
-  static toWorkUnit(snake: Snake) {
+  static async toWorkUnit(snake: Snake) {
     const workSnake: SnakeDomain = new SnakeDomain();
     if (snake.id) {
       workSnake.id = snake.id;
@@ -34,18 +37,28 @@ export class snakeMapper {
     }
     workSnake.direction = snake.direction;
     workSnake.status = snake.status;
-    if (snake.head) {
+    if (snake.nodes) {
       workSnake.nodes = JSON.parse(snake.nodes);
+    } else {
+      workSnake.nodes = [];
     }
     workSnake.length = snake.length;
     if (snake.nextNodeSpace) {
       workSnake.nextNodeSpace = JSON.parse(snake.nextNodeSpace);
     }
-    if (snake.user) {
-      workSnake.user = userMapper.toWorkUnit(snake.user);
+    if (snake.userId) {
+      const repository = AppDataSource.getRepository(User);
+      const userEntity = await repository.findOneBy({ id: snake.userId });
+      if (userEntity) {
+        workSnake.user = await userMapper.toWorkUnit(userEntity);
+      }
     }
-    if (snake.game) {
-      workSnake.game = gameMapper.toWorkUnit(snake.game);
+    if (snake.gameId) {
+      const repository = AppDataSource.getRepository(Game);
+      const gameEntity = await repository.findOneBy({ id: snake.gameId });
+      if (gameEntity) {
+        workSnake.game = await gameMapper.toWorkUnit(gameEntity);
+      }
     }
     return workSnake;
   }

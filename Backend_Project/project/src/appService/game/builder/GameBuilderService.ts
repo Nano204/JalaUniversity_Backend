@@ -30,14 +30,13 @@ export default class GameBuilder implements GameBuilderInterface {
 
     if (game.users) {
       game.snakes = [];
-      await Promise.all(
-        game.users.map(async (user) => {
-          const snake = await this.snakeBehavior.buildNewSnake(user.id, game.size);
-          if (game.snakes) {
-            game.snakes.push(snake);
-          }
-        })
-      );
+      for (let i = 0; i < game.users.length; i++) {
+        const user = game.users[i];
+        const snake = await this.snakeBehavior.buildNewSnake(user.id, game.size);
+        if (game.snakes) {
+          game.snakes.push(snake);
+        }
+      }
     }
     return await this.gameService.updateGame(game);
   }

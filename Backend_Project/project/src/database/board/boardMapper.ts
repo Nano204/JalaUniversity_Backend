@@ -1,4 +1,6 @@
 import BoardDomain from "../../domain/entities/BoardDomain";
+import { AppDataSource } from "../DBConnection";
+import { Game } from "../game/Game";
 import { gameMapper } from "../game/gameMapper";
 import { Board } from "./Board";
 
@@ -10,12 +12,12 @@ export class boardMapper {
     }
     entityBoard.coordinates = JSON.stringify(board.coordinates);
     if (board.game) {
-      entityBoard.game = gameMapper.toDBEntity(board.game);
+      entityBoard.gameId = board.game.id;
     }
     return entityBoard;
   }
 
-  static toWorkUnit(board: Board) {
+  static async toWorkUnit(board: Board) {
     const workBoard: BoardDomain = new BoardDomain();
     if (board.id) {
       workBoard.id = board.id;
@@ -23,8 +25,12 @@ export class boardMapper {
     if (board.coordinates) {
       workBoard.coordinates = JSON.parse(board.coordinates);
     }
-    if (board.game) {
-      workBoard.game = gameMapper.toWorkUnit(board.game);
+    if (board.gameId) {
+      const repository = AppDataSource.getRepository(Game);
+      const gameEntity = await repository.findOneBy({ id: board.gameId });
+      if (gameEntity) {
+        workBoard.game = await gameMapper.toWorkUnit(gameEntity);
+      }
     }
     return workBoard;
   }
