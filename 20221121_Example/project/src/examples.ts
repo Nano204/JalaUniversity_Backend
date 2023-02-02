@@ -1,1 +1,0 @@
-: Generator<number, void, unknown>
