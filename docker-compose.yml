@@ -1,0 +1,13 @@
+version: '3'
+services:
+  backend:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=rabbit
+      - RABBITMQ_DEFAULT_PASS=rabbit
+    restart: unless-stopped
+    ports:
+      - "15672:15672"
+      - "5672:5672"
