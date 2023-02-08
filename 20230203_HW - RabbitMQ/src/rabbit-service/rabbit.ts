@@ -38,7 +38,7 @@ export class Rabbit {
                 setTimeout(function () {
                     connection.close();
                     process.exit(0);
-                }, 500);
+                }, 5000);
             }
         );
     }
