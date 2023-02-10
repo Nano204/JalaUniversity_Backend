@@ -1,5 +1,7 @@
 import { DataSource } from "typeorm";
 import env from "../env";
+import { AccountEntity } from "./model/Account";
+import { FileEntity } from "./model/File";
 
 export const AppDataSource = new DataSource({
     type: "mongodb",
@@ -9,4 +11,5 @@ export const AppDataSource = new DataSource({
     useNewUrlParser: true,
     useUnifiedTopology: true,
     synchronize: true,
+    entities: [AccountEntity, FileEntity],
 });
