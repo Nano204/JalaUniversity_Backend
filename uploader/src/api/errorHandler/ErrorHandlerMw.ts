@@ -30,7 +30,7 @@ export default class ErrorHandlersMiddleWare {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         next: NextFunction
     ) {
-        const errorCode = "code" in err ? err.code : 500;
+        const errorCode = "code" in err && err.code < 600 ? err.code : 500;
         res.status(errorCode).json({ code: errorCode, errorMessage: err.message });
     }
 }

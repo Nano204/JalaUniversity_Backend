@@ -45,7 +45,7 @@ router.get("/search", async (req, res, next) => {
 
 router.get("/:id", async (req, res, next) => {
     fileController
-        .findBinaryFileById(req, res, next)
+        .findFileById(req, res, next)
         .then((response) => response)
         .catch(next);
 });

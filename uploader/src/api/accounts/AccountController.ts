@@ -53,13 +53,13 @@ export default class AccountController {
             ...account,
             ...req.body,
         });
-        return res.status(200).json(this.mapToDTO(updateAccount));
+        return res.status(200).json(updateAccount);
     }
 
     async deleteAccount(req: Request, res: Response, next: NextFunction) {
         const { id } = req.params;
         const deleted = await this.accountService.deleteById(id);
-        if (!deleted.affected) {
+        if (!deleted.deletedCount) {
             return next(new NotFoundException());
         }
         return res.status(200).json(deleted);

@@ -1,5 +1,6 @@
-import { Repository } from "typeorm";
-import { AppDataSource } from "../database/DBSource";
+import { ObjectId } from "mongodb";
+import { Collection } from "mongodb";
+import { database } from "../database/DBSource";
 import { AccountMapper } from "../database/mappers/AccountMapper";
 import {
     Account,
@@ -8,38 +9,54 @@ import {
 } from "../database/model/Account";
 
 export default class AccountService {
-    private repository: Repository<AccountEntity>;
+    private collection: Collection;
     private mapToDBEntity: AccountMapper["toDBEntity"];
 
     constructor() {
-        this.repository = AppDataSource.getMongoRepository(AccountEntity);
+        this.collection = database.collection("account_entity");
+        this.collection.createIndex({ googleDriveKey: 1 }, { unique: true });
+        this.collection.createIndex({ email: 1 }, { unique: true });
         this.mapToDBEntity = new AccountMapper().toDBEntity;
     }
 
     async createNew(accountRequestInfo: CreateAccountRequestInfo) {
         const account = new Account(accountRequestInfo);
         const newAccount = this.mapToDBEntity(account);
-        await this.repository.save(newAccount);
+        await this.collection.insertOne(newAccount);
         return newAccount;
     }
 
     async findAll() {
-        return await this.repository.find();
+        return (await this.collection.find().toArray()) as AccountEntity[];
     }
 
     async findById(id: string) {
-        return await this.repository.findOneBy({ id });
+        const _id = new ObjectId(id);
+        return (await this.collection.findOne({ _id })) as AccountEntity;
     }
 
     async findByEmail(email: string) {
-        return await this.repository.findOneBy({ email });
+        return (await this.collection.findOne({ email })) as AccountEntity;
     }
 
     async update(account: AccountEntity) {
-        return await this.repository.save(account);
+        const updateDoc = { $set: { ...account } };
+        const updatedFile = await this.collection.findOneAndUpdate(
+            { _id: account._id },
+            updateDoc,
+            {
+                upsert: false,
+            }
+        );
+        if (updatedFile.value) {
+            const _id = updatedFile.value._id;
+            return await this.collection.findOne({ _id });
+        }
+        throw new Error("Unexpected server error");
     }
 
     async deleteById(id: string) {
-        return await this.repository.delete({ id });
+        const _id = new ObjectId(id);
+        return await this.collection.deleteOne({ _id });
     }
 }

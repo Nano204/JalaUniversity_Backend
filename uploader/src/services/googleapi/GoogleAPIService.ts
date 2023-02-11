@@ -2,7 +2,6 @@ import { drive_v3, google } from "googleapis";
 import fs from "fs";
 import env from "../../env";
 import { OAuth2Client } from "google-auth-library";
-import { FileRequestInfo } from "../../database/model/File";
 
 type GoogleFileResponse = {
     id: string;
@@ -10,6 +9,13 @@ type GoogleFileResponse = {
     mimeType: string;
     webContentLink: string;
     webViewLink: string;
+};
+
+type GoogleFileRequest = {
+    name: string;
+    size: number;
+    mimeType: string;
+    path: string;
 };
 
 export default class GoogleAPIService {
@@ -31,8 +37,11 @@ export default class GoogleAPIService {
         });
     }
 
-    public async uploadFile(fileRequestInfo: FileRequestInfo) {
+    public async uploadFile(fileRequestInfo: GoogleFileRequest) {
         try {
+            console.log(fileRequestInfo.path);
+            console.log(fs.readFileSync(fileRequestInfo.path).length);
+
             const file = await this.drive.files.create({
                 requestBody: {
                     name: fileRequestInfo.name,
@@ -50,7 +59,7 @@ export default class GoogleAPIService {
             });
             const response = await this.drive.files.get({
                 fileId,
-                fields: "id, name, mimeType, webViewLink, webContentLink",
+                fields: "id, name, size, mimeType, webViewLink, webContentLink",
             });
             return response.data as GoogleFileResponse;
         } catch (error) {

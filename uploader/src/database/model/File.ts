@@ -1,17 +1,15 @@
 import { ObjectId } from "mongodb";
-import { Column, Entity, Index, ObjectID, ObjectIdColumn } from "typeorm";
 
 export type FileRequestInfo = {
-    fsId: string;
+    tempDBReference: string;
     name: string;
     size: number;
-    chunkSize: number;
     mimeType: string;
     path?: string;
 };
 
 export type FileQueryInfo = {
-    fsId?: string;
+    tempDBReference?: string;
     name?: string;
     size?: number;
     chunkSize?: number;
@@ -27,54 +25,36 @@ export type OnDriveFile = {
 
 export type FileStatus = "Replicating..." | "Uploaded";
 
-@Entity()
 export class FileEntity {
-    @ObjectIdColumn()
     public _id!: ObjectId;
-
-    @Column({ nullable: false })
-    @Index({ unique: true })
-    public fsId!: ObjectId;
-
-    @Column({ nullable: false })
+    public tempDBReference!: ObjectId;
     public name!: string;
-
-    @Column({ nullable: false })
     public size!: number;
-
-    @Column({ nullable: false })
-    public chunkSize!: number;
-
-    @Column({ nullable: false })
     public mimeType!: string;
-
-    @Column({ nullable: false })
     public status!: string;
-
-    @Column({ nullable: false })
     public onDriveFile!: OnDriveFile[];
 }
 
 export class File {
-    public fsId!: ObjectId;
+    public _id!: ObjectId;
+    public tempDBReference!: ObjectId;
     public name!: string;
     public size!: number;
-    public chunkSize!: number;
     public mimeType!: string;
     public status!: string;
     public onDriveFile!: OnDriveFile[];
     constructor(requestInfo: FileRequestInfo) {
-        this.fsId = new ObjectId(requestInfo.fsId);
+        this.tempDBReference = new ObjectId(requestInfo.tempDBReference);
         this.name = requestInfo.name;
         this.mimeType = requestInfo.mimeType;
         this.size = requestInfo.size;
-        this.chunkSize = requestInfo.chunkSize;
         this.status = "Replicating...";
     }
 }
 
 export class FileDTO {
-    public fsId!: string;
+    public _id!: string;
+    public tempDBReference!: string;
     public name!: string;
     public size!: number;
     public mimeType!: string;
