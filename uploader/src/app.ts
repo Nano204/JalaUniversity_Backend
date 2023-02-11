@@ -1,6 +1,5 @@
 import { config as dotenvConfig } from "dotenv";
 import api from "./api/api";
-import { DBInit } from "./database/DBinit";
 import env from "./env";
 
 dotenvConfig();

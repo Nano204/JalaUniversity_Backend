@@ -24,7 +24,6 @@
         "multer-gridfs-storage": "^5.0.2",
         "ts-jest": "^29.0.5",
         "ts-node": "^10.9.1",
-        "typeorm": "^0.3.11",
         "uuid": "^9.0.0"
     },
     "devDependencies": {
