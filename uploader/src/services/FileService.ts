@@ -1,19 +1,30 @@
+import { Collection, GridFSBucket, ObjectId } from "mongodb";
 import { Repository } from "typeorm";
-import { AppDataSource } from "../database/DBSource";
+import fs from "fs";
+import { AppDataSource, database, gridFSBucket } from "../database/DBSource";
 import { FileMapper } from "../database/mappers/FileMapper";
-import { FileRequestInfo, File, FileEntity, OnDriveFile } from "../database/model/File";
+import {
+    FileRequestInfo,
+    File,
+    FileEntity,
+    OnDriveFile,
+    FileQueryInfo,
+} from "../database/model/File";
 import AccountService from "./AccountService";
 import GoogleAPIService from "./googleapi/GoogleAPIService";
 
 export default class FileService {
-    private repository: Repository<FileEntity>;
+    // private repository: Repository<FileEntity>;
+    private collection: Collection;
     private accountService: AccountService;
     private mapToDBEntity: FileMapper["toDBEntity"];
+    private bucket: GridFSBucket;
 
     constructor() {
-        this.repository = AppDataSource.getMongoRepository(FileEntity);
+        this.collection = database.collection("file_entity");
         this.accountService = new AccountService();
         this.mapToDBEntity = new FileMapper().toDBEntity;
+        this.bucket = gridFSBucket;
     }
 
     private async uploadToAllDrives(
@@ -42,9 +53,9 @@ export default class FileService {
     }
 
     private async deleteFromAllDrives(id: string) {
-        const file = await this.repository.findOneBy({ id });
+        const file = await this.collection.findOne({ id });
         const onDriveFileList = file?.onDriveFile;
-        onDriveFileList?.map(async (onlineFileData) => {
+        onDriveFileList?.map(async (onlineFileData: OnDriveFile) => {
             const account = await this.accountService.findById(onlineFileData.accountId);
             if (account) {
                 const googleAPIService = new GoogleAPIService(account.googleDriveKey);
@@ -55,30 +66,51 @@ export default class FileService {
 
     async createNew(fileRequestInfo: FileRequestInfo) {
         const file = new File(fileRequestInfo);
-        file.onDriveFile = await this.uploadToAllDrives(fileRequestInfo);
         const newFile = this.mapToDBEntity(file);
-        await this.repository.save(newFile);
+        await this.collection.insertOne(newFile);
         return newFile;
     }
 
-    async findAll() {
-        return await this.repository.find();
+    async findAll(): Promise<FileEntity[]> {
+        return (await this.collection.find().toArray()) as FileEntity[];
     }
 
-    async findById(id: string) {
-        return await this.repository.findOneBy({ id });
+    async findById(id: string): Promise<FileEntity | void> {
+        const document = await this.collection.findOne({ fsId: new ObjectId(id) });
+        if (document) {
+            return document as FileEntity;
+        }
     }
 
-    async findManyByQuery(requestInfo: FileRequestInfo) {
-        return await this.repository.find({ where: { ...requestInfo } });
+    async findBinaryById(id: string) {
+        const _id = new ObjectId(id);
+        const document = await this.bucket.find({ _id }).toArray();
+        if (document.length) {
+            console.log("start");
+            this.bucket
+                .openDownloadStream(_id)
+                .pipe(fs.createWriteStream("./src/services/outputFile"));
+            console.log("end");
+            return document[0];
+        }
+    }
+
+    async findManyByQuery(queryIfo: FileQueryInfo): Promise<FileEntity[]> {
+        const query = { ...queryIfo };
+        return (await this.collection.find(query).toArray()) as FileEntity[];
     }
 
     async update(file: FileEntity) {
-        return await this.repository.save(file);
+        const updateDoc = { $set: { ...file } };
+        return await this.collection.findOneAndUpdate({ _id: file._id }, updateDoc, {
+            upsert: false,
+        });
     }
 
     async deleteById(id: string) {
         await this.deleteFromAllDrives(id);
-        return await this.repository.delete({ id });
+        const _id = new ObjectId(id);
+        await this.bucket.delete(_id);
+        return await this.collection.deleteOne({ fsId: _id });
     }
 }

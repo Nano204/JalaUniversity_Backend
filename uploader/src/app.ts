@@ -9,7 +9,5 @@ const app = api;
 const port = env.PORT || 3000;
 
 app.listen(port, () => {
-    new DBInit()
-        .initializeDB()
-        .then(() => console.log(`Uploading microservice listening on port ${port}`));
+    console.log(`Uploading microservice listening on port ${port}`);
 });

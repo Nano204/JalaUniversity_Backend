@@ -4,24 +4,39 @@ import AccountController from "./AccountController";
 const router = Router();
 const accountController = new AccountController();
 
-router.post("/", async (req, res, next) => {
-    await accountController.createNewAccount(req, res, next);
+router.post("/", (req, res, next) => {
+    accountController
+        .createNewAccount(req, res, next)
+        .then((response) => response)
+        .catch(next);
 });
 
-router.get("/:idOrEmail", async (req, res, next) => {
-    await accountController.findAccountByIdOrEmail(req, res, next);
+router.get("/:idOrEmail", (req, res, next) => {
+    accountController
+        .findAccountByIdOrEmail(req, res, next)
+        .then((response) => response)
+        .catch(next);
 });
 
-router.get("/", async (req, res, next) => {
-    await accountController.findAllAccounts(req, res, next);
+router.get("/", (req, res, next) => {
+    accountController
+        .findAllAccounts(req, res, next)
+        .then((response) => response)
+        .catch(next);
 });
 
-router.put("/:id", async (req, res, next) => {
-    await accountController.updateAccount(req, res, next);
+router.put("/:id", (req, res, next) => {
+    accountController
+        .updateAccount(req, res, next)
+        .then((response) => response)
+        .catch(next);
 });
 
-router.delete("/:id", async (req, res, next) => {
-    await accountController.deleteAccount(req, res, next);
+router.delete("/:id", (req, res, next) => {
+    accountController
+        .deleteAccount(req, res, next)
+        .then((response) => response)
+        .catch(next);
 });
 
 export default router;
