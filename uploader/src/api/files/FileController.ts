@@ -28,6 +28,9 @@ export default class FileController {
         } = req.file;
         const requestInfo = { name, size, mimeType, tempDBReference };
         const newFile = await this.fileService.createNew(requestInfo);
+        if (!newFile) {
+            throw new Error("Unexpected sever error");
+        }
         return res.status(202).json(this.mapToDTO(newFile));
     }
 
@@ -102,5 +105,21 @@ export default class FileController {
             throw new NotFoundException();
         }
         return res.status(200).json(deleted);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async uploadFile(req: Request, res: Response, next: NextFunction) {
+        const { id } = req.params;
+        const objectIDLength = 24;
+        if (id.length != objectIDLength) {
+            throw new BadRequestException(
+                "Id passed in must be a string of 12 bytes or a string of 24 hex characters or an integer"
+            );
+        }
+        const uploadFile = await this.fileService.fromGridFSToAllDrives(id);
+        if (!uploadFile) {
+            throw new NotFoundException();
+        }
+        return res.status(200).json(uploadFile);
     }
 }

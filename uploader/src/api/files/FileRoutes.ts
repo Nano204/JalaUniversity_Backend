@@ -18,12 +18,6 @@ const storage = new GridFsStorage({
     },
 });
 
-// const storage = multer.diskStorage({
-//     destination: function (req, res, cb) {
-//         cb(null, "./src/api/files/uploads/");
-//     },
-// });
-
 const upload = multer({ storage });
 
 const router = Router();
@@ -32,6 +26,13 @@ const fileController = new FileController();
 router.post("/", upload.single("file"), (req, res, next) => {
     fileController
         .createNewFile(req, res, next)
+        .then((response) => response)
+        .catch(next);
+});
+
+router.post("/:id/upload", (req, res, next) => {
+    fileController
+        .uploadFile(req, res, next)
         .then((response) => response)
         .catch(next);
 });

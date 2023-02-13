@@ -39,9 +39,6 @@ export default class GoogleAPIService {
 
     public async uploadFile(fileRequestInfo: GoogleFileRequest) {
         try {
-            console.log(fileRequestInfo.path);
-            console.log(fs.readFileSync(fileRequestInfo.path).length);
-
             const file = await this.drive.files.create({
                 requestBody: {
                     name: fileRequestInfo.name,

@@ -5,7 +5,6 @@ export type FileRequestInfo = {
     name: string;
     size: number;
     mimeType: string;
-    path?: string;
 };
 
 export type FileQueryInfo = {
@@ -14,7 +13,6 @@ export type FileQueryInfo = {
     size?: number;
     chunkSize?: number;
     mimeType?: string;
-    path?: string;
 };
 
 export type OnDriveFile = {
@@ -23,7 +21,7 @@ export type OnDriveFile = {
     webContentLink: string;
 };
 
-export type FileStatus = "Replicating..." | "Uploaded";
+export type FileStatus = "Replicating..." | "Uploading" | "Uploaded";
 
 export class FileEntity {
     public _id!: ObjectId;

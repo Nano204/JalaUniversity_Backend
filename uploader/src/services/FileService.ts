@@ -11,7 +11,6 @@ import {
 } from "../database/model/File";
 import AccountService from "./AccountService";
 import GoogleAPIService from "./googleapi/GoogleAPIService";
-import { NotFoundException } from "../api/errorHandler/Exceptions";
 
 export default class FileService {
     private collection: Collection;
@@ -28,20 +27,34 @@ export default class FileService {
         this.tempFilePath = "./src/services/temp/outputFile";
     }
 
-    private async uploadFileToAllDrives(id: string): Promise<OnDriveFile[]> {
+    public async fromGridFSToAllDrives(id: string) {
         const file = await this.findById(id);
-        const path = this.tempFilePath;
-        if (!file) {
-            throw new NotFoundException();
+        if (file) {
+            const tempDBReference = file.tempDBReference.toString();
+            await this.downloadTempFileByReference(tempDBReference, async () => {
+                file.onDriveFile = await this.uploadTempFileToAllDrives({
+                    ...file,
+                    tempDBReference,
+                });
+                file.status = "Uploaded";
+                this.deleteTempFile();
+                await this.update(file);
+            });
+            return await this.update({ ...file, status: "Uploading..." });
         }
+    }
+
+    private async uploadTempFileToAllDrives(
+        fileRequestInfo: FileRequestInfo
+    ): Promise<OnDriveFile[]> {
+        const path = this.tempFilePath;
         const accounts = await this.accountService.findAll();
         const onDriveFileList: OnDriveFile[] = [];
-        console.log({ path, size: fs.readFileSync(path).length });
         await Promise.all(
             accounts.map(async (account) => {
                 const googleAPIService = new GoogleAPIService(account.googleDriveKey);
                 const onlineFile = await googleAPIService.uploadFile({
-                    ...file,
+                    ...fileRequestInfo,
                     path,
                 });
                 if (onlineFile) {
@@ -54,9 +67,7 @@ export default class FileService {
                 }
             })
         );
-        // fs.unlink(path, (err) => {
-        //     throw err;
-        // });
+
         if (onDriveFileList && onDriveFileList.length) {
             return onDriveFileList;
         }
@@ -64,10 +75,12 @@ export default class FileService {
     }
 
     private async deleteFromAllDrives(id: string) {
-        const file = await this.collection.findOne({ id });
+        const _id = new ObjectId(id);
+        const file = await this.collection.findOne({ _id });
         const onDriveFileList = file?.onDriveFile;
         onDriveFileList?.map(async (onlineFileData: OnDriveFile) => {
             const account = await this.accountService.findById(onlineFileData.accountId);
+            console.log(onlineFileData);
             if (account) {
                 const googleAPIService = new GoogleAPIService(account.googleDriveKey);
                 googleAPIService.deleteFile(onlineFileData.onDriveId);
@@ -78,34 +91,42 @@ export default class FileService {
     async createNew(fileRequestInfo: FileRequestInfo) {
         const file = new File(fileRequestInfo);
         const newFile = this.mapToDBEntity(file);
-        const storedFile = await this.collection.insertOne(newFile);
-        await this.uploadFileToAllDrives(storedFile.insertedId.toString());
-        return newFile;
+        const storedConfirmation = await this.collection.insertOne(newFile);
+        return this.findById(storedConfirmation.insertedId.toString());
     }
 
     async findAll(): Promise<FileEntity[]> {
         return (await this.collection.find().toArray()) as FileEntity[];
     }
 
-    async findById(id: string): Promise<FileEntity | void> {
+    async findById(id: string): Promise<FileEntity | null> {
         const _id = new ObjectId(id);
         const document = await this.collection.findOne({ _id });
         if (document) {
             return document as FileEntity;
         }
+        return null;
     }
 
-    async downloadBinaryById(id: string, cb: FileService["uploadFileToAllDrives"]) {
-        const _id = new ObjectId(id);
+    async downloadTempFileByReference(reference: string, cb: () => Promise<void>) {
+        const _id = new ObjectId(reference);
         const document = await this.bucket.find({ _id }).toArray();
         if (document.length) {
             this.bucket
                 .openDownloadStream(_id)
                 .pipe(fs.createWriteStream(this.tempFilePath))
                 .once("finish", () => {
-                    cb(id);
+                    cb();
                 });
         }
+    }
+
+    async deleteTempFile() {
+        fs.unlink(this.tempFilePath, (err) => {
+            if (err) {
+                throw err;
+            }
+        });
     }
 
     async findManyByQuery(queryIfo: FileQueryInfo): Promise<FileEntity[]> {
@@ -130,7 +151,7 @@ export default class FileService {
     }
 
     async deleteById(id: string) {
-        // await this.deleteFromAllDrives(id);
+        await this.deleteFromAllDrives(id);
         const _id = new ObjectId(id);
         const document = await this.collection.findOne({ _id });
         if (document) {
