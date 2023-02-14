@@ -16,7 +16,7 @@ export default class AccountController {
         const { email, googleDriveKey } = req.body;
         const requestInfo = { email, googleDriveKey };
         if (!email || !googleDriveKey) {
-            return next(new BadRequestException("One or more parameters ara missing"));
+            return next(new BadRequestException("One or more parameters are missing"));
         }
         const newAccount = await this.accountService.createNew(requestInfo);
         return res.status(201).json(this.mapToDTO(newAccount));

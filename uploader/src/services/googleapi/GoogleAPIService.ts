@@ -38,37 +38,29 @@ export default class GoogleAPIService {
     }
 
     public async uploadFile(fileRequestInfo: GoogleFileRequest) {
-        try {
-            const file = await this.drive.files.create({
-                requestBody: {
-                    name: fileRequestInfo.name,
-                    mimeType: fileRequestInfo.mimeType,
-                },
-                media: {
-                    mimeType: fileRequestInfo.mimeType,
-                    body: fs.createReadStream(fileRequestInfo.path || ""),
-                },
-            });
-            const fileId = file.data.id as string;
-            await this.drive.permissions.create({
-                fileId,
-                requestBody: { role: "reader", type: "anyone" },
-            });
-            const response = await this.drive.files.get({
-                fileId,
-                fields: "id, name, size, mimeType, webViewLink, webContentLink",
-            });
-            return response.data as GoogleFileResponse;
-        } catch (error) {
-            console.error(error);
-        }
+        const file = await this.drive.files.create({
+            requestBody: {
+                name: fileRequestInfo.name,
+                mimeType: fileRequestInfo.mimeType,
+            },
+            media: {
+                mimeType: fileRequestInfo.mimeType,
+                body: fs.createReadStream(fileRequestInfo.path || ""),
+            },
+        });
+        const fileId = file.data.id as string;
+        await this.drive.permissions.create({
+            fileId,
+            requestBody: { role: "reader", type: "anyone" },
+        });
+        const response = await this.drive.files.get({
+            fileId,
+            fields: "id, name, size, mimeType, webViewLink, webContentLink",
+        });
+        return response.data as GoogleFileResponse;
     }
 
     public async deleteFile(fileId: string) {
-        try {
-            await this.drive.files.delete({ fileId });
-        } catch (error) {
-            console.error(error);
-        }
+        await this.drive.files.delete({ fileId });
     }
 }

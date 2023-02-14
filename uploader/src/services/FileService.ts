@@ -11,7 +11,8 @@ import {
 } from "../database/model/File";
 import AccountService from "./AccountService";
 import GoogleAPIService from "./googleapi/GoogleAPIService";
-
+import { AccountEntity } from "../database/model/Account";
+import request from "request";
 export default class FileService {
     private collection: Collection;
     private accountService: AccountService;
@@ -32,44 +33,76 @@ export default class FileService {
         if (file) {
             const tempDBReference = file.tempDBReference.toString();
             await this.downloadTempFileByReference(tempDBReference, async () => {
-                file.onDriveFile = await this.uploadTempFileToAllDrives({
-                    ...file,
-                    tempDBReference,
-                });
+                file.onDriveFile = await this.uploadTempFileToAllDrives(file);
                 file.status = "Uploaded";
-                this.deleteTempFile();
                 await this.update(file);
             });
-            return await this.update({ ...file, status: "Uploading..." });
+            return await this.update({ ...file, status: "Replicating..." });
         }
     }
 
-    private async uploadTempFileToAllDrives(
-        fileRequestInfo: FileRequestInfo
-    ): Promise<OnDriveFile[]> {
-        const path = this.tempFilePath;
+    private async uploadTempFileToAllDrives(file: FileEntity): Promise<OnDriveFile[]> {
+        const fileId = file._id.toString();
         const accounts = await this.accountService.findAll();
         const onDriveFileList: OnDriveFile[] = [];
         await Promise.all(
             accounts.map(async (account) => {
-                const googleAPIService = new GoogleAPIService(account.googleDriveKey);
-                const onlineFile = await googleAPIService.uploadFile({
-                    ...fileRequestInfo,
-                    path,
-                });
-                if (onlineFile) {
-                    const onDriveFile: OnDriveFile = {
-                        accountId: account._id.toString(),
-                        onDriveId: onlineFile.id,
-                        webContentLink: onlineFile.webContentLink,
+                const onDriveFile = await this.uploadTempFileToDrive(account, fileId);
+                const accountId = account._id.toString();
+                if (onDriveFile) {
+                    const postObject = {
+                        fileOriginId: fileId,
+                        name: file.name,
+                        size: file.size,
+                        mimeType: file.mimeType,
+                        accountOriginId: accountId,
+                        onDriveId: onDriveFile.onDriveId,
+                        webContentLink: onDriveFile.webContentLink,
                     };
+                    request.post(
+                        "http://localhost:3002/downloads/",
+                        { json: postObject },
+                        (error) => {
+                            if (error) {
+                                throw new Error("Making post request failed");
+                            }
+                            // if (!error && response.statusCode == 202) {
+                            //     console.log(body);
+                            // }
+                        }
+                    );
                     return onDriveFileList.push(onDriveFile);
                 }
             })
         );
-
+        this.deleteTempFile();
         if (onDriveFileList && onDriveFileList.length) {
             return onDriveFileList;
+        }
+        throw new Error("Could not upload the file");
+    }
+
+    private async uploadTempFileToDrive(
+        account: AccountEntity,
+        fileId: string
+    ): Promise<OnDriveFile> {
+        const file = await this.findById(fileId);
+        if (file) {
+            const path = this.tempFilePath;
+            const googleAPIService = new GoogleAPIService(account.googleDriveKey);
+            const onlineFile = await googleAPIService.uploadFile({
+                ...file,
+                path,
+            });
+            if (onlineFile) {
+                const onDriveFile: OnDriveFile = {
+                    accountId: account._id.toString(),
+                    onDriveId: onlineFile.id,
+                    webContentLink: onlineFile.webContentLink,
+                };
+                return onDriveFile;
+            }
+            throw new Error("Could not upload the file");
         }
         throw new Error("Could not upload the file");
     }
@@ -80,7 +113,6 @@ export default class FileService {
         const onDriveFileList = file?.onDriveFile;
         onDriveFileList?.map(async (onlineFileData: OnDriveFile) => {
             const account = await this.accountService.findById(onlineFileData.accountId);
-            console.log(onlineFileData);
             if (account) {
                 const googleAPIService = new GoogleAPIService(account.googleDriveKey);
                 googleAPIService.deleteFile(onlineFileData.onDriveId);

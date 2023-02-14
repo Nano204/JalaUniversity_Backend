@@ -1,5 +1,13 @@
 import { ObjectId } from "mongodb";
 
+export type UploadFileRequestInfo = {
+    fileId: string;
+    tempDBReference: string;
+    name: string;
+    size: number;
+    mimeType: string;
+};
+
 export type FileRequestInfo = {
     tempDBReference: string;
     name: string;
@@ -21,7 +29,7 @@ export type OnDriveFile = {
     webContentLink: string;
 };
 
-export type FileStatus = "Replicating..." | "Uploading" | "Uploaded";
+export type FileStatus = "Stored on DB" | "Replicating..." | "Uploaded";
 
 export class FileEntity {
     public _id!: ObjectId;
@@ -46,7 +54,8 @@ export class File {
         this.name = requestInfo.name;
         this.mimeType = requestInfo.mimeType;
         this.size = requestInfo.size;
-        this.status = "Replicating...";
+        this.status = "Stored on DB";
+        this.onDriveFile = [];
     }
 }
 

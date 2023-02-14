@@ -117,9 +117,9 @@ export default class FileController {
             );
         }
         const uploadFile = await this.fileService.fromGridFSToAllDrives(id);
-        if (!uploadFile) {
-            throw new NotFoundException();
-        }
+        // if (!uploadFile) {
+        //     throw new NotFoundException();
+        // }
         return res.status(200).json(uploadFile);
     }
 }
