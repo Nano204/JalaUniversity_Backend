@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from "express";
 import { AccountInfoMapper } from "../../database/mappers/AccountInfoMapper";
-import { AccountState } from "../../database/model/AccountInfo";
 import AccountInfoService from "../../services/AccountInfoService";
 import { BadRequestException, NotFoundException } from "../errorHandler/Exceptions";
 
@@ -45,9 +44,8 @@ export default class AccountInfoController {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async findAccountsByState(req: Request, res: Response, next: NextFunction) {
-        const { state } = req.query;
-        const accounts = await this.accountService.findManyByState(state as AccountState);
+    async findAvailableAccounts(req: Request, res: Response, next: NextFunction) {
+        const accounts = await this.accountService.findAvailable();
         if (!accounts.length) {
             throw new NotFoundException();
         }

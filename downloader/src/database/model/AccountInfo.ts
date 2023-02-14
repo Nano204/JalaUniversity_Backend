@@ -1,53 +1,60 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { File, FileEntity } from "./File";
+import { Column, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
+import { File, FileDTO, FileEntity } from "./File";
 
 export type AccountInfoRequest = {
     accountOriginId: string;
-    onDriveId: string;
-    webContentLink: string;
 };
-
-export type AccountState = "Available" | "Unavailable";
 
 @Entity()
 export class AccountInfoEntity {
     @PrimaryGeneratedColumn("uuid")
     public id!: string;
 
-    @Column({ nullable: false })
+    @Column({ nullable: false, unique: true })
     public accountOriginId!: string;
 
     @Column({ nullable: false })
-    public onDriveId!: string;
+    public lastDateDownloadSize!: number;
 
     @Column({ nullable: false })
-    public webContentLink!: string;
+    public lastDownloadDate!: number;
 
-    @Column({ nullable: false })
-    public state!: AccountState;
-
-    @ManyToOne(() => FileEntity, (file) => file.accounstInfo)
-    public file!: FileEntity;
+    @ManyToMany(() => FileEntity, (file) => file.accountsInfo)
+    @JoinTable({
+        name: "URI",
+        joinColumn: {
+            name: "accountId",
+            referencedColumnName: "id",
+        },
+        inverseJoinColumn: {
+            name: "fileId",
+            referencedColumnName: "id",
+        },
+    })
+    public files!: FileEntity[];
 }
 
 export class AccountInfo {
     public id!: string;
     public accountOriginId!: string;
-    public onDriveId!: string;
-    public webContentLink!: string;
-    public state!: AccountState;
-    public file!: File;
+    public lastDateDownloadSize!: number;
+    public lastDownloadDate!: number;
+    public files!: File[];
     constructor(requestInfo: AccountInfoRequest) {
         this.accountOriginId = requestInfo.accountOriginId;
-        this.onDriveId = requestInfo.onDriveId;
-        this.webContentLink = requestInfo.webContentLink;
-        this.state = "Available";
+        this.lastDateDownloadSize = 0;
+        const date = new Date(new Date().toUTCString());
+        this.lastDownloadDate = date.getTime();
+        this.files = [];
     }
 }
 
 export class AccountInfoDTO {
     public id!: string;
-    public webContentLink!: string;
-    public state!: AccountState;
-    public file!: File;
+    public accountOriginId!: string;
+    public lastDownload!: {
+        size: number;
+        date: Date;
+    };
+    public files!: FileDTO[];
 }

@@ -2,6 +2,7 @@ import express from "express";
 const api = express();
 import accountInfoRouter from "./accounts/AccountInfoRoutes";
 import fileRouter from "./files/FileRoutes";
+import uriRelationsRouter from "./URIRelations/URIRelactionsRoutes";
 import ErrorHandlersMiddleWare from "./errorHandler/ErrorHandlerMw";
 
 const errorHandler = new ErrorHandlersMiddleWare();
@@ -9,6 +10,7 @@ const errorHandler = new ErrorHandlersMiddleWare();
 api.use(express.json());
 api.use("/accounts", accountInfoRouter);
 api.use("/files", fileRouter);
+api.use("/downloads", uriRelationsRouter);
 api.use(errorHandler.logErrors);
 api.use(errorHandler.serverErrorHandler);
 api.use(errorHandler.errorHandler);

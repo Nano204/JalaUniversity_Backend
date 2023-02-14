@@ -1,9 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import { Exception } from "./Exceptions";
+import logger from "jet-logger";
 
 export default class ErrorHandlersMiddleWare {
     logErrors(err: Exception | Error, req: Request, res: Response, next: NextFunction) {
-        console.error(err);
+        logger.err(err);
         next(err);
     }
 

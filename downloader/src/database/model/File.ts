@@ -1,7 +1,8 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
 import { AccountInfo, AccountInfoDTO, AccountInfoEntity } from "./AccountInfo";
 
 export type FileRequestInfo = {
+    fileOriginId: string;
     name: string;
     size: number;
     mimeType: string;
@@ -12,6 +13,9 @@ export class FileEntity {
     @PrimaryGeneratedColumn("uuid")
     public id!: string;
 
+    @Column({ nullable: false, unique: true })
+    public fileOriginId!: string;
+
     @Column({ nullable: false })
     public name!: string;
 
@@ -21,27 +25,31 @@ export class FileEntity {
     @Column({ nullable: false })
     public mimeType!: string;
 
-    @OneToMany(() => AccountInfoEntity, (accountInfo) => accountInfo.file)
-    public accounstInfo!: AccountInfoEntity[];
+    @ManyToMany(() => AccountInfoEntity, (accountInfo) => accountInfo.files)
+    public accountsInfo!: AccountInfoEntity[];
 }
 
 export class File {
     public id!: string;
+    public fileOriginId!: string;
     public name!: string;
     public size!: number;
     public mimeType!: string;
-    public accounstInfo!: AccountInfo[];
+    public accountsInfo!: AccountInfo[];
     constructor(requestInfo: FileRequestInfo) {
+        this.fileOriginId = requestInfo.fileOriginId;
         this.name = requestInfo.name;
         this.mimeType = requestInfo.mimeType;
         this.size = requestInfo.size;
+        this.accountsInfo = [];
     }
 }
 
 export class FileDTO {
     public id!: string;
+    public fileOriginId!: string;
     public name!: string;
     public size!: number;
     public mimeType!: string;
-    public accounstInfo!: AccountInfoDTO[];
+    public accountsInfo!: AccountInfoDTO[];
 }

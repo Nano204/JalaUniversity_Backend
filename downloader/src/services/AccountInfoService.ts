@@ -1,11 +1,10 @@
-import { Repository } from "typeorm";
+import { LessThan, Repository } from "typeorm";
 import { AppDataSource } from "../database/DBSource";
 import { AccountInfoMapper } from "../database/mappers/AccountInfoMapper";
 import {
     AccountInfo,
     AccountInfoEntity,
     AccountInfoRequest,
-    AccountState,
 } from "../database/model/AccountInfo";
 
 export default class AccountInfoService {
@@ -24,12 +23,51 @@ export default class AccountInfoService {
         return newAccountInfo;
     }
 
+    async findOrCreate(accountRequestInfo: AccountInfoRequest) {
+        const findedAccount = await this.repository.findOne({
+            where: { accountOriginId: accountRequestInfo.accountOriginId },
+        });
+        if (findedAccount) {
+            return findedAccount;
+        }
+        const accountInfo = new AccountInfo(accountRequestInfo);
+        const newAccountInfo = this.mapToDBEntity(accountInfo);
+        await this.repository.save(newAccountInfo);
+        return newAccountInfo;
+    }
+
     async findAll() {
         return await this.repository.find();
     }
 
-    async findManyByState(state: AccountState) {
-        return await this.repository.find({ where: { state } });
+    async findAvailable() {
+        const dateNow = new Date(new Date().toUTCString());
+        const restartCountDate = dateNow.setHours(0, 0, 0, 0);
+        let accounts = await this.repository.find({
+            where: { lastDownloadDate: LessThan(restartCountDate) },
+        });
+        if (!accounts.length) {
+            accounts = await this.repository.find({
+                order: { lastDateDownloadSize: "ASC" },
+            });
+        }
+        return accounts;
+    }
+
+    async chargeDownloadSize(id: string, size: number) {
+        const account = await this.repository.findOneBy({ id });
+        if (account) {
+            account.lastDateDownloadSize += size;
+            return await this.repository.save(account);
+        }
+    }
+
+    async resetDownloadSize(id: string) {
+        const account = await this.repository.findOneBy({ id });
+        if (account) {
+            account.lastDateDownloadSize = 0;
+            return await this.repository.save(account);
+        }
     }
 
     async findById(id: string) {

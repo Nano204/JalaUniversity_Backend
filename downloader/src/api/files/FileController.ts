@@ -15,8 +15,8 @@ export default class FileController {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async createNewFile(req: Request, res: Response, next: NextFunction) {
-        const { name, size, mimeType } = req.body;
-        const requestInfo = { name, size, mimeType };
+        const { fileOriginId, name, size, mimeType } = req.body;
+        const requestInfo = { fileOriginId, name, size, mimeType };
         const newFile = await this.fileService.createNew(requestInfo);
         return res.status(202).json(this.mapToDTO(newFile));
     }
@@ -33,9 +33,10 @@ export default class FileController {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async findFilesByQuery(req: Request, res: Response, next: NextFunction) {
-        const { name, size, mimeType } = req.query;
+        const { fileOriginId, name, size, mimeType } = req.query;
         const requestInfo: FileRequestInfo = {
             name: String(name),
+            fileOriginId: String(fileOriginId),
             size: Number(size),
             mimeType: String(mimeType),
         };

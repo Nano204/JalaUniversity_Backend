@@ -6,7 +6,7 @@ const accountInfoController = new AccountInfoController();
 
 router.get("/search", async (req, res, next) => {
     accountInfoController
-        .findAccountsByState(req, res, next)
+        .findAvailableAccounts(req, res, next)
         .then((response) => response)
         .catch(next);
 });

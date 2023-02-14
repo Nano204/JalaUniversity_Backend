@@ -19,12 +19,33 @@ export default class FileService {
         return newFile;
     }
 
+    async findOrCreate(fileRequestInfo: FileRequestInfo) {
+        const findedAccount = await this.repository.findOne({
+            relations: ["accountsInfo"],
+            where: { fileOriginId: fileRequestInfo.fileOriginId },
+        });
+        if (findedAccount) {
+            return findedAccount;
+        }
+        const file = new File(fileRequestInfo);
+        const newFile = this.mapToDBEntity(file);
+        await this.repository.save(newFile);
+        return newFile;
+    }
+
     async findAll() {
         return await this.repository.find();
     }
 
     async findById(id: string) {
         return await this.repository.findOneBy({ id });
+    }
+
+    async findByIdWithSpecificAccount(fileOriginId: string, accountId: string) {
+        return await this.repository.findOne({
+            relations: ["accountsInfo"],
+            where: { fileOriginId, accountsInfo: { id: accountId } },
+        });
     }
 
     async findManyByQuery(requestInfo: FileRequestInfo) {
