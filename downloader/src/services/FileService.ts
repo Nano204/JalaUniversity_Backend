@@ -41,6 +41,10 @@ export default class FileService {
         return await this.repository.findOneBy({ id });
     }
 
+    async findByOriginId(id: string) {
+        return await this.repository.findOneBy({ fileOriginId: id });
+    }
+
     async findByIdWithSpecificAccount(fileOriginId: string, accountId: string) {
         return await this.repository.findOne({
             relations: ["accountsInfo"],

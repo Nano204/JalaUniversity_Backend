@@ -77,9 +77,9 @@ export default class URIService {
         return this.findURIByFileOriginIdAndAccountId(file.fileOriginId, accountInfo.id);
     }
 
-    async findURIByFileOriginIdAndAccountId(fileId: string, accountId: string) {
+    async findURIByFileOriginIdAndAccountId(fileOriginId: string, accountId: string) {
         const file = await this.fileService.findByIdWithSpecificAccount(
-            fileId,
+            fileOriginId,
             accountId
         );
         const uri = await this.repository.findOne({

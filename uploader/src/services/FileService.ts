@@ -12,13 +12,16 @@ import {
 import AccountService from "./AccountService";
 import GoogleAPIService from "./googleapi/GoogleAPIService";
 import { AccountEntity } from "../database/model/Account";
-import request from "request";
+import { QUEUES, Rabbit } from "./rabbitService/rabbit";
+import logger from "jet-logger";
+
 export default class FileService {
     private collection: Collection;
     private accountService: AccountService;
     private mapToDBEntity: FileMapper["toDBEntity"];
     private bucket: GridFSBucket;
     private tempFilePath: string;
+    private rabbitService: Rabbit;
 
     constructor() {
         this.collection = database.collection("file_entity");
@@ -26,18 +29,23 @@ export default class FileService {
         this.mapToDBEntity = new FileMapper().toDBEntity;
         this.bucket = gridFSBucket;
         this.tempFilePath = "./src/services/temp/outputFile";
+        this.rabbitService = new Rabbit();
     }
 
     public async fromGridFSToAllDrives(id: string) {
-        const file = await this.findById(id);
-        if (file) {
-            const tempDBReference = file.tempDBReference.toString();
-            await this.downloadTempFileByReference(tempDBReference, async () => {
-                file.onDriveFile = await this.uploadTempFileToAllDrives(file);
-                file.status = "Uploaded";
-                await this.update(file);
-            });
-            return await this.update({ ...file, status: "Replicating..." });
+        try {
+            const file = await this.findById(id);
+            if (file) {
+                const tempDBReference = file.tempDBReference.toString();
+                await this.downloadTempFileByReference(tempDBReference, async () => {
+                    file.onDriveFile = await this.uploadTempFileToAllDrives(file);
+                    file.status = "Uploaded";
+                    await this.update(file);
+                });
+                await this.update({ ...file, status: "Replicating..." });
+            }
+        } catch (err) {
+            logger.imp(err, true);
         }
     }
 
@@ -45,37 +53,28 @@ export default class FileService {
         const fileId = file._id.toString();
         const accounts = await this.accountService.findAll();
         const onDriveFileList: OnDriveFile[] = [];
-        await Promise.all(
-            accounts.map(async (account) => {
-                const onDriveFile = await this.uploadTempFileToDrive(account, fileId);
-                const accountId = account._id.toString();
-                if (onDriveFile) {
-                    const postObject = {
-                        fileOriginId: fileId,
-                        name: file.name,
-                        size: file.size,
-                        mimeType: file.mimeType,
-                        accountOriginId: accountId,
-                        onDriveId: onDriveFile.onDriveId,
-                        webContentLink: onDriveFile.webContentLink,
-                    };
-                    request.post(
-                        "http://localhost:3002/downloads/",
-                        { json: postObject },
-                        (error) => {
-                            if (error) {
-                                throw new Error("Making post request failed");
-                            }
-                            // if (!error && response.statusCode == 202) {
-                            //     console.log(body);
-                            // }
-                        }
-                    );
-                    return onDriveFileList.push(onDriveFile);
-                }
-            })
-        );
-        this.deleteTempFile();
+        for await (const account of accounts) {
+            const onDriveFile = await this.uploadTempFileToDrive(account, fileId);
+            const accountId = account._id.toString();
+            if (onDriveFile) {
+                const toDownloadObject = {
+                    fileOriginId: fileId,
+                    name: file.name,
+                    size: file.size,
+                    mimeType: file.mimeType,
+                    accountOriginId: accountId,
+                    onDriveId: onDriveFile.onDriveId,
+                    webContentLink: onDriveFile.webContentLink,
+                };
+                this.rabbitService.sendToQueue(
+                    QUEUES.sendToDownloadService,
+                    JSON.stringify(toDownloadObject)
+                );
+                onDriveFileList.push(onDriveFile);
+            }
+        }
+        await this.deleteTempFile();
+        this.rabbitService.sendToQueue(QUEUES.executeUploadTask, "Execute next");
         if (onDriveFileList && onDriveFileList.length) {
             return onDriveFileList;
         }
@@ -124,7 +123,9 @@ export default class FileService {
         const file = new File(fileRequestInfo);
         const newFile = this.mapToDBEntity(file);
         const storedConfirmation = await this.collection.insertOne(newFile);
-        return this.findById(storedConfirmation.insertedId.toString());
+        const id = storedConfirmation.insertedId.toString();
+        this.rabbitService.sendToQueue(QUEUES.uploadQueue, id);
+        return this.findById(id);
     }
 
     async findAll(): Promise<FileEntity[]> {

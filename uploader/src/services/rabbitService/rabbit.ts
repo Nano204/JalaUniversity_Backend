@@ -1,9 +1,17 @@
 import env from "../../env";
 import amqp from "amqplib";
+import FileService from "../FileService";
+
+export const QUEUES = {
+    uploadQueue: "Upload-to-drive",
+    executeUploadTask: "Excute-task-on-upload-queue",
+    sendToDownloadService: "Upload-download-connection",
+};
 
 export class Rabbit {
     private amqp;
     private amqpConnectionSetting;
+    private static executionQueue: Array<() => void> = [];
     constructor() {
         this.amqp = amqp;
         this.amqpConnectionSetting = {
@@ -24,7 +32,6 @@ export class Rabbit {
         console.log(" [x] Sent %s", msg);
         setTimeout(function () {
             connection.close();
-            process.exit(0);
         }, 500);
     }
 
@@ -35,12 +42,41 @@ export class Rabbit {
         await channel.assertQueue(queueName, queueProperties);
         console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", queueName);
         const onMessage = (msg: amqp.ConsumeMessage | null) => {
-            msg && console.log(" [x] Received %s", msg.content.toString());
+            const payload = msg && msg.content.toString();
+            console.log("Callback - ", queueName);
+            console.log(" [x] Received %s", payload);
+            const cb = this.selectCallbackFromQueue(queueName, payload);
+            cb();
+            console.log("--------------");
+            console.log();
         };
         channel.consume(queueName, onMessage, { noAck: true });
-        setTimeout(function () {
-            connection.close();
-            process.exit(0);
-        }, 500);
+    }
+
+    selectCallbackFromQueue(queueName: string, payload: string | null): () => void {
+        switch (queueName) {
+            case QUEUES.uploadQueue:
+                return (): void => {
+                    const fileService = new FileService();
+                    const execution = () => fileService.fromGridFSToAllDrives(payload as string);
+                    Rabbit.executionQueue.push(execution);
+                    console.log("Add function - ", Rabbit.executionQueue.length);
+                    if (Rabbit.executionQueue.length == 1) {
+                        Rabbit.executionQueue[0]();
+                    }
+                };
+            case QUEUES.executeUploadTask:
+                return () => {
+                    console.log("Excute function - ", Rabbit.executionQueue.length);
+                    Rabbit.executionQueue.shift();
+                    if (Rabbit.executionQueue.length) {
+                        Rabbit.executionQueue[0]();
+                    }
+                };
+            default:
+                return () => {
+                    throw new Error("Not assigned queue");
+                };
+        }
     }
 }

@@ -5,7 +5,7 @@ import { GridFsStorage } from "multer-gridfs-storage";
 import env from "../../env";
 
 const storage = new GridFsStorage({
-    url: `mongodb://127.0.0.1:27017/${env.DATABASE_NAME}`,
+    url: `${env.DATABASE_URI}/${env.DATABASE_NAME}`,
     file: (req, file) => {
         return new Promise((resolve) => {
             const filename = file.originalname.trim();

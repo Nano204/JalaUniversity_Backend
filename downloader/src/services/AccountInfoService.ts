@@ -36,10 +36,6 @@ export default class AccountInfoService {
         return newAccountInfo;
     }
 
-    async findAll() {
-        return await this.repository.find();
-    }
-
     async findAvailable() {
         const dateNow = new Date(new Date().toUTCString());
         const restartCountDate = dateNow.setHours(0, 0, 0, 0);
@@ -68,6 +64,10 @@ export default class AccountInfoService {
             account.lastDateDownloadSize = 0;
             return await this.repository.save(account);
         }
+    }
+
+    async findAll() {
+        return await this.repository.find();
     }
 
     async findById(id: string) {

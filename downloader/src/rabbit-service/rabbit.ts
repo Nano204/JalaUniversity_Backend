@@ -1,10 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import amqp from "amqplib";
 import env from "../env";
+import URIService from "../services/URIService";
 
+export const QUEUES = {
+    receiveFromUploadService: "Upload-download-connection",
+};
 export class Rabbit {
     private amqp;
     private amqpConnectionSetting;
+    private uriService;
     constructor() {
-        this.amqp = require("amqplib/callback_api");
+        this.amqp = amqp;
         this.amqpConnectionSetting = {
             protocol: "amqp",
             hostname: "localhost",
@@ -12,66 +19,54 @@ export class Rabbit {
             username: env.RABBIT_USERNAME,
             password: env.RABBIT_PASSWORD,
         };
+        this.uriService = new URIService();
     }
 
-    sendToQueue(queue: string, msg: string) {
-        this.amqp.connect(
-            this.amqpConnectionSetting,
-            function (error0: Error, connection: any) {
-                if (error0) {
-                    throw error0;
-                }
-                connection.createChannel(function (error1: Error, channel: any) {
-                    if (error1) {
-                        throw error1;
-                    }
-                    channel.assertQueue(queue, {
-                        durable: false,
-                    });
-                    channel.sendToQueue(queue, Buffer.from(msg));
-                    console.log(" [x] Sent %s", msg);
-                });
-                setTimeout(function () {
-                    connection.close();
-                    process.exit(0);
-                }, 500);
-            }
-        );
+    async sendToQueue(queueName: string, msg: string) {
+        const connection = await this.amqp.connect(this.amqpConnectionSetting);
+        const channel = await connection.createChannel();
+        const queueProperties = { durable: false };
+        await channel.assertQueue(queueName, queueProperties);
+        channel.sendToQueue(queueName, Buffer.from(msg));
+        console.log(" [x] Sent %s", msg);
+        setTimeout(function () {
+            connection.close();
+        }, 500);
     }
 
-    receiveFromQueue(queue: string) {
-        this.amqp.connect(
-            this.amqpConnectionSetting,
-            function (error0: Error, connection: any) {
-                if (error0) {
-                    throw error0;
-                }
-                connection.createChannel(function (error1: Error, channel: any) {
-                    if (error1) {
-                        throw error1;
-                    }
-                    channel.assertQueue(queue, {
-                        durable: false,
-                    });
+    async receiveFromQueue(queueName: string) {
+        const connection = await this.amqp.connect(this.amqpConnectionSetting);
+        const channel = await connection.createChannel();
+        const queueProperties = { durable: false };
+        await channel.assertQueue(queueName, queueProperties);
+        console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", queueName);
+        const onMessage = (msg: amqp.ConsumeMessage | null) => {
+            const payload = msg && msg.content.toString();
+            console.log("Callback - ", queueName);
+            const cb = this.selectCallbackFromQueue(queueName, payload);
+            cb();
+            console.log("--------------");
+            console.log();
+        };
+        channel.consume(queueName, onMessage, { noAck: true });
+    }
+
+    selectCallbackFromQueue(queueName: string, payload: any): () => void {
+        switch (queueName) {
+            case QUEUES.receiveFromUploadService:
+                return (): void => {
+                    const requestInfo = JSON.parse(payload);
                     console.log(
-                        " [*] Waiting for messages in %s. To exit press CTRL+C",
-                        queue
+                        " [x] Received %s",
+                        requestInfo.accountOriginId,
+                        requestInfo.fileOriginId
                     );
-                    channel.consume(
-                        queue,
-                        function (msg: { content: object }) {
-                            console.log(" [x] Received %s", msg.content.toString());
-                        },
-                        {
-                            noAck: true,
-                        }
-                    );
-                });
-                setTimeout(function () {
-                    connection.close();
-                    process.exit(0);
-                }, 500);
-            }
-        );
+                    this.uriService.createRelation(requestInfo);
+                };
+            default:
+                return () => {
+                    throw new Error("Not assigned queue");
+                };
+        }
     }
 }
