@@ -12,8 +12,18 @@ import {
 import AccountService from "./AccountService";
 import GoogleAPIService from "./googleapi/GoogleAPIService";
 import { AccountEntity } from "../database/model/Account";
-import { QUEUES, Rabbit } from "./rabbitService/rabbit";
+import { Rabbit, TOPICS } from "./rabbitService/rabbit";
 import logger from "jet-logger";
+
+export type toDownloadObject = {
+    fileOriginId: string;
+    name: string;
+    size: number;
+    mimeType: string;
+    accountOriginId: string;
+    onDriveId: string;
+    webContentLink: string;
+};
 
 export default class FileService {
     private collection: Collection;
@@ -66,15 +76,15 @@ export default class FileService {
                     onDriveId: onDriveFile.onDriveId,
                     webContentLink: onDriveFile.webContentLink,
                 };
-                this.rabbitService.sendToQueue(
-                    QUEUES.sendToDownloadService,
-                    JSON.stringify(toDownloadObject)
+                await this.rabbitService.publishOnExchange(
+                    TOPICS.sendToDownloadCreate,
+                    toDownloadObject
                 );
                 onDriveFileList.push(onDriveFile);
             }
         }
         await this.deleteTempFile();
-        this.rabbitService.sendToQueue(QUEUES.executeUploadTask, "Execute next");
+        await this.rabbitService.publishOnExchange(TOPICS.toExecuteCreate);
         if (onDriveFileList && onDriveFileList.length) {
             return onDriveFileList;
         }
@@ -124,7 +134,7 @@ export default class FileService {
         const newFile = this.mapToDBEntity(file);
         const storedConfirmation = await this.collection.insertOne(newFile);
         const id = storedConfirmation.insertedId.toString();
-        this.rabbitService.sendToQueue(QUEUES.uploadQueue, id);
+        this.rabbitService.publishOnExchange(TOPICS.toUploadCreate, id);
         return this.findById(id);
     }
 
@@ -172,9 +182,7 @@ export default class FileService {
         const updatedFile = await this.collection.findOneAndUpdate(
             { _id: file._id },
             updateDoc,
-            {
-                upsert: false,
-            }
+            { upsert: false }
         );
         if (updatedFile.value) {
             const _id = updatedFile.value._id;

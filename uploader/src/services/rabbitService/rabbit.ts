@@ -8,10 +8,25 @@ export const QUEUES = {
     sendToDownloadService: "Upload-download-connection",
 };
 
+export const TOPICS = {
+    toUploadCreate: "create.toQueue",
+    toUploadDelete: "delete.toQueue",
+    toUploadUpdate: "update.toQueue",
+    toExecuteCreate: "create.execute",
+    toExecuteDelete: "delete.execute",
+    toExecuteUpdate: "update.execute",
+    sendToDownloadCreate: "create.onDownloadMicroservice",
+    sendToDownloadDelete: "detele.onDownloadMicroservice",
+    sendToDownloadUpdate: "update.onDownloadMicroservice",
+};
+
+export type Payload = { topic: string; data: unknown };
+
 export class Rabbit {
     private amqp;
     private amqpConnectionSetting;
     private static executionQueue: Array<() => void> = [];
+    private static exchange = "microservices_shared_exchange";
     constructor() {
         this.amqp = amqp;
         this.amqpConnectionSetting = {
@@ -23,56 +38,90 @@ export class Rabbit {
         };
     }
 
-    async sendToQueue(queueName: string, msg: string) {
+    async publishOnExchange(topic: string, data?: unknown) {
         const connection = await this.amqp.connect(this.amqpConnectionSetting);
         const channel = await connection.createChannel();
-        const queueProperties = { durable: false };
-        await channel.assertQueue(queueName, queueProperties);
-        channel.sendToQueue(queueName, Buffer.from(msg));
-        console.log(" [x] Sent %s", msg);
+        const exchangeProperties = { durable: false };
+        await channel.assertExchange(Rabbit.exchange, "topic", exchangeProperties);
+        const payload = JSON.stringify({ topic, data });
+        channel.publish(Rabbit.exchange, topic, Buffer.from(payload));
+        console.log(" [x] Sent %s", topic);
         setTimeout(function () {
             connection.close();
         }, 500);
     }
 
-    async receiveFromQueue(queueName: string) {
+    private async bindQueue(channel: amqp.Channel, topic: string) {
+        const newQueue = await channel.assertQueue("", { exclusive: true });
+        await channel.bindQueue(newQueue.queue, Rabbit.exchange, topic);
+        return newQueue.queue;
+    }
+
+    async receiveFromRabbit() {
         const connection = await this.amqp.connect(this.amqpConnectionSetting);
         const channel = await connection.createChannel();
-        const queueProperties = { durable: false };
-        await channel.assertQueue(queueName, queueProperties);
-        console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", queueName);
-        const onMessage = (msg: amqp.ConsumeMessage | null) => {
-            const payload = msg && msg.content.toString();
-            console.log("Callback - ", queueName);
-            console.log(" [x] Received %s", payload);
-            const cb = this.selectCallbackFromQueue(queueName, payload);
+        const exchangeProperties = { durable: false };
+        await channel.assertExchange(Rabbit.exchange, "topic", exchangeProperties);
+
+        const toUploadCreate = await this.bindQueue(channel, TOPICS.toUploadCreate);
+        const toUploadDelete = await this.bindQueue(channel, TOPICS.toUploadDelete);
+        const toUploadUpdate = await this.bindQueue(channel, TOPICS.toUploadUpdate);
+        const toExcecuteCreate = await this.bindQueue(channel, TOPICS.toExecuteCreate);
+        const toExcecuteDelete = await this.bindQueue(channel, TOPICS.toExecuteDelete);
+        const toExcecuteUpdate = await this.bindQueue(channel, TOPICS.toExecuteUpdate);
+
+        console.log(
+            " [*] Microservice: Uploader - Waiting for messages in %s. To exit press CTRL+C",
+            Rabbit.exchange
+        );
+
+        const onMessage = (payloadMsg: amqp.ConsumeMessage | null) => {
+            if (!payloadMsg) {
+                throw new Error("Error");
+            }
+            const payload = JSON.parse(payloadMsg.content.toString());
+            console.log(" [x] Received | Topic:", payload.topic);
+            const cb = this.selectCallbackFromQueue(payload);
             cb();
             console.log("--------------");
             console.log();
         };
-        channel.consume(queueName, onMessage, { noAck: true });
+
+        channel.consume(toUploadCreate, onMessage, { noAck: true });
+        channel.consume(toUploadDelete, onMessage, { noAck: true });
+        channel.consume(toUploadUpdate, onMessage, { noAck: true });
+        channel.consume(toExcecuteCreate, onMessage, { noAck: true });
+        channel.consume(toExcecuteDelete, onMessage, { noAck: true });
+        channel.consume(toExcecuteUpdate, onMessage, { noAck: true });
     }
 
-    selectCallbackFromQueue(queueName: string, payload: string | null): () => void {
-        switch (queueName) {
-            case QUEUES.uploadQueue:
-                return (): void => {
-                    const fileService = new FileService();
-                    const execution = () => fileService.fromGridFSToAllDrives(payload as string);
-                    Rabbit.executionQueue.push(execution);
-                    console.log("Add function - ", Rabbit.executionQueue.length);
-                    if (Rabbit.executionQueue.length == 1) {
-                        Rabbit.executionQueue[0]();
-                    }
-                };
-            case QUEUES.executeUploadTask:
-                return () => {
-                    console.log("Excute function - ", Rabbit.executionQueue.length);
-                    Rabbit.executionQueue.shift();
-                    if (Rabbit.executionQueue.length) {
-                        Rabbit.executionQueue[0]();
-                    }
-                };
+    selectCallbackFromQueue(payload: Payload): () => void {
+        const topic = payload.topic;
+
+        const pushOnUploadQueue = () => {
+            const data = payload.data as string;
+            const fileService = new FileService();
+            const execution = () => fileService.fromGridFSToAllDrives(data);
+            Rabbit.executionQueue.push(execution);
+            console.log("Add function - ", Rabbit.executionQueue.length);
+            if (Rabbit.executionQueue.length == 1) {
+                Rabbit.executionQueue[0]();
+            }
+        };
+
+        const executeNextUploadTask = () => {
+            console.log("Execute function - ", Rabbit.executionQueue.length);
+            Rabbit.executionQueue.shift();
+            if (Rabbit.executionQueue.length) {
+                Rabbit.executionQueue[0]();
+            }
+        };
+
+        switch (topic) {
+            case TOPICS.toUploadCreate:
+                return pushOnUploadQueue;
+            case TOPICS.toExecuteCreate:
+                return executeNextUploadTask;
             default:
                 return () => {
                     throw new Error("Not assigned queue");

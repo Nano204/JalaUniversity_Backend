@@ -7,7 +7,7 @@ import { URI } from "./model/URI";
 export const AppDataSource = new DataSource({
     type: "sqlite",
     database: env.DATABASE_NAME as string,
-    // synchronize: true,
+    synchronize: true,
     logging: false,
     migrations: [],
     subscribers: [],

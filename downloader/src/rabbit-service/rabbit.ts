@@ -1,15 +1,25 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import amqp from "amqplib";
 import env from "../env";
-import URIService from "../services/URIService";
+import URIService, { CreateRelationRequest } from "../services/URIService";
 
 export const QUEUES = {
     receiveFromUploadService: "Upload-download-connection",
 };
+
+export const TOPICS = {
+    fromUploadCreate: "create.onDownloadMicroservice",
+    fromUploadDelete: "detele.onDownloadMicroservice",
+    fromUploadUpdate: "update.onDownloadMicroservice",
+};
+
+export type Payload = { topic: string; data: unknown };
+
 export class Rabbit {
     private amqp;
     private amqpConnectionSetting;
     private uriService;
+    private static exchange = "microservices_shared_exchange";
     constructor() {
         this.amqp = amqp;
         this.amqpConnectionSetting = {
@@ -34,35 +44,60 @@ export class Rabbit {
         }, 500);
     }
 
-    async receiveFromQueue(queueName: string) {
+    private async bindQueue(channel: amqp.Channel, topic: string) {
+        const newQueue = await channel.assertQueue("", { exclusive: true });
+        await channel.bindQueue(newQueue.queue, Rabbit.exchange, topic);
+        return newQueue.queue;
+    }
+
+    async receiveFromRabbit() {
         const connection = await this.amqp.connect(this.amqpConnectionSetting);
         const channel = await connection.createChannel();
-        const queueProperties = { durable: false };
-        await channel.assertQueue(queueName, queueProperties);
-        console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", queueName);
-        const onMessage = (msg: amqp.ConsumeMessage | null) => {
-            const payload = msg && msg.content.toString();
-            console.log("Callback - ", queueName);
-            const cb = this.selectCallbackFromQueue(queueName, payload);
+        const exchangeProperties = { durable: false };
+        await channel.assertExchange(Rabbit.exchange, "topic", exchangeProperties);
+
+        const fromUploadCreate = await this.bindQueue(channel, TOPICS.fromUploadCreate);
+        const fromUploadDelete = await this.bindQueue(channel, TOPICS.fromUploadDelete);
+        const fromUploadUpdate = await this.bindQueue(channel, TOPICS.fromUploadUpdate);
+
+        console.log(
+            " [*] Microservice: Uploader - Waiting for messages in %s. To exit press CTRL+C",
+            Rabbit.exchange
+        );
+
+        const onMessage = (payloadMsg: amqp.ConsumeMessage | null) => {
+            if (!payloadMsg) {
+                throw new Error("Error");
+            }
+            const payload = JSON.parse(payloadMsg.content.toString());
+            console.log(" [x] Received | Topic:", payload.topic);
+            const cb = this.selectCallbackFromQueue(payload);
             cb();
             console.log("--------------");
             console.log();
         };
-        channel.consume(queueName, onMessage, { noAck: true });
+
+        channel.consume(fromUploadCreate, onMessage, { noAck: true });
+        channel.consume(fromUploadDelete, onMessage, { noAck: true });
+        channel.consume(fromUploadUpdate, onMessage, { noAck: true });
     }
 
-    selectCallbackFromQueue(queueName: string, payload: any): () => void {
-        switch (queueName) {
-            case QUEUES.receiveFromUploadService:
-                return (): void => {
-                    const requestInfo = JSON.parse(payload);
-                    console.log(
-                        " [x] Received %s",
-                        requestInfo.accountOriginId,
-                        requestInfo.fileOriginId
-                    );
-                    this.uriService.createRelation(requestInfo);
-                };
+    selectCallbackFromQueue(payload: Payload): () => void {
+        const topic = payload.topic;
+
+        const executeCreateRequest = () => {
+            const requestInfo = payload.data as CreateRelationRequest;
+            console.log(
+                " [x] Received %s",
+                requestInfo.accountOriginId,
+                requestInfo.fileOriginId
+            );
+            this.uriService.createRelation(requestInfo);
+        };
+
+        switch (topic) {
+            case TOPICS.fromUploadCreate:
+                return executeCreateRequest;
             default:
                 return () => {
                     throw new Error("Not assigned queue");

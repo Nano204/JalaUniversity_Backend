@@ -1,4 +1,4 @@
-import { QUEUES, Rabbit } from "./rabbit-service/rabbit";
+import { Rabbit } from "./rabbit-service/rabbit";
 import { config as dotenvConfig } from "dotenv";
 import { DBInit } from "./database/DBinit";
 import env from "./env";
@@ -13,6 +13,6 @@ export const rabbit = new Rabbit();
 app.listen(port, () => {
     new DBInit().initializeDB().then(() => {
         console.log(`Downloader microservice listening on port ${port}`);
-        rabbit.receiveFromQueue(QUEUES.receiveFromUploadService);
+        rabbit.receiveFromRabbit();
     });
 });
