@@ -32,4 +32,11 @@ router.delete("/:id", async (req, res, next) => {
         .catch(next);
 });
 
+router.put("/:id", async (req, res, next) => {
+    fileController
+        .updateFile(req, res, next)
+        .then((response) => response)
+        .catch(next);
+});
+
 export default router;

@@ -1,5 +1,4 @@
 import { Column, Entity, OneToMany, PrimaryColumn } from "typeorm";
-import { DownloadInfoEntity } from "./DownloadInfo";
 import { URIDTO, URIEntity } from "./URI";
 
 export type AccountRequestInfo = {
@@ -19,9 +18,6 @@ export class AccountEntity {
 
     @OneToMany(() => URIEntity, (uri) => uri.account)
     public uris!: URIEntity[];
-
-    @OneToMany(() => DownloadInfoEntity, (downloadInfo) => downloadInfo.account)
-    public downloads?: DownloadInfoEntity[];
 }
 
 export class Account {

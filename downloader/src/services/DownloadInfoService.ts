@@ -2,15 +2,19 @@ import { MoreThanOrEqual, Repository } from "typeorm";
 import { AppDataSource } from "../database/DBSource";
 import { DownloadInfoMapper } from "../database/mappers/DownloadsInfoMapper";
 import { AccountEntity } from "../database/model/Account";
-import { DownloadInfo, DownloadInfoEntity } from "../database/model/DownloadInfo";
+import {
+    DownloadInfo,
+    DownloadInfoEntity,
+    RegistryRequestInfo,
+} from "../database/model/DownloadInfo";
 import { FileEntity } from "../database/model/File";
 import { URIEntity } from "../database/model/URI";
 import AccountService from "./AccountService";
 import FileService from "./FileService";
 
 export type CreateRegistryRequest = {
-    fileId: string;
-    accountId: string;
+    file: FileEntity;
+    account: AccountEntity;
     uri: URIEntity;
 };
 
@@ -28,15 +32,27 @@ export default class DownloadInfoService {
     }
 
     async createNew(requestInfo: CreateRegistryRequest) {
-        const { fileId, accountId, uri } = requestInfo;
-        const file = (await this.fileService.findById(fileId)) as FileEntity;
-        const account = (await this.accountService.findById(accountId)) as AccountEntity;
+        const { file, account } = requestInfo;
         account.lastDownloadDate = new Date().getTime();
         account.lastDateTotalDownloadSize += file.size;
         this.accountService.update(account);
-        const registryRequestInfo = { file, account, uri };
-        const registry = new DownloadInfo(registryRequestInfo);
+        const entityRequestInfo = this.createEntityRequestInfo(requestInfo);
+        const registry = new DownloadInfo(entityRequestInfo);
         return await this.repository.save(this.mapToDBEntity(registry));
+    }
+
+    createEntityRequestInfo(requestInfo: CreateRegistryRequest) {
+        const registryRequestInfo: RegistryRequestInfo = {
+            fileId: requestInfo.file.id,
+            fileName: requestInfo.file.name,
+            size: requestInfo.file.size,
+            mimeType: requestInfo.file.mimeType,
+            accountId: requestInfo.account.id,
+            uriId: requestInfo.uri.id,
+            onDriveId: requestInfo.uri.onDriveId,
+            webContentLink: requestInfo.uri.webContentLink,
+        };
+        return registryRequestInfo;
     }
 
     async findTodayRegistries() {
@@ -49,6 +65,6 @@ export default class DownloadInfoService {
     }
 
     async findAll() {
-        return await this.repository.find({ relations: ["file", "account", "uri"] });
+        return await this.repository.find();
     }
 }

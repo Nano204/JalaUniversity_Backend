@@ -11,6 +11,13 @@ router.get("/:id", async (req, res, next) => {
         .catch(next);
 });
 
+router.delete("/:id", async (req, res, next) => {
+    uriRelationsController
+        .deleteURIById(req, res, next)
+        .then((response) => response)
+        .catch(next);
+});
+
 router.post("/", async (req, res, next) => {
     uriRelationsController
         .createNewURI(req, res, next)

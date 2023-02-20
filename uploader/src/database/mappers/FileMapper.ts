@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { File, FileDTO, FileEntity } from "../model/File";
+import { File, FileDTO, FileEntity, FileStatus } from "../model/File";
 
 export class FileMapper {
     toDBEntity(file: File): FileEntity {
@@ -18,7 +18,7 @@ export class FileMapper {
         fileDTO._id = file._id.toString();
         fileDTO.name = file.name;
         fileDTO.size = file.size;
-        fileDTO.status = file.status;
+        fileDTO.status = file.status as FileStatus;
         fileDTO.mimeType = file.mimeType;
         fileDTO.tempDBReference = file.tempDBReference.toString();
         fileDTO.onDriveFile = file.onDriveFile;

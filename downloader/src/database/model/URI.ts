@@ -1,6 +1,5 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, Index, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { AccountDTO, AccountEntity } from "./Account";
-import { DownloadInfoEntity } from "./DownloadInfo";
 import { FileDTO, FileEntity } from "./File";
 
 export type URIRequest = {
@@ -11,6 +10,7 @@ export type URIRequest = {
 };
 
 @Entity("URI")
+@Index(["file", "account"], { unique: true })
 export class URIEntity {
     @PrimaryGeneratedColumn("uuid")
     public id!: string;
@@ -21,14 +21,17 @@ export class URIEntity {
     @Column()
     public webContentLink?: string;
 
-    @ManyToOne(() => FileEntity, (file) => file.uris)
+    @ManyToOne(() => FileEntity, (file) => file.uris, {
+        onDelete: "CASCADE",
+        onUpdate: "CASCADE",
+    })
     public file!: FileEntity;
 
-    @ManyToOne(() => AccountEntity, (account) => account.uris)
+    @ManyToOne(() => AccountEntity, (account) => account.uris, {
+        onDelete: "CASCADE",
+        onUpdate: "CASCADE",
+    })
     public account!: AccountEntity;
-
-    @OneToMany(() => DownloadInfoEntity, (downloadInfo) => downloadInfo.uri)
-    public downloads?: DownloadInfoEntity[];
 }
 
 export class URI {

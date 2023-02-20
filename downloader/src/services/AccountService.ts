@@ -27,7 +27,6 @@ export default class AccountService {
             return findedAccount;
         }
         const accountInfo = new Account(accountRequestInfo);
-        console.log(accountInfo);
         const newAccountInfo = this.mapToDBEntity(accountInfo);
         await this.repository.save(newAccountInfo);
         return newAccountInfo;

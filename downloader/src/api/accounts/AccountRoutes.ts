@@ -32,4 +32,11 @@ router.post("/", async (req, res, next) => {
         .catch(next);
 });
 
+router.delete("/:id", async (req, res, next) => {
+    accountController
+        .deleteAccount(req, res, next)
+        .then((response) => response)
+        .catch(next);
+});
+
 export default router;

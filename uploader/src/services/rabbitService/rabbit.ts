@@ -2,12 +2,6 @@ import env from "../../env";
 import amqp from "amqplib";
 import FileService from "../FileService";
 
-export const QUEUES = {
-    uploadQueue: "Upload-to-drive",
-    executeUploadTask: "Excute-task-on-upload-queue",
-    sendToDownloadService: "Upload-download-connection",
-};
-
 export const TOPICS = {
     toUploadCreate: "create.toQueue",
     toUploadDelete: "delete.toQueue",
@@ -15,9 +9,11 @@ export const TOPICS = {
     toExecuteCreate: "create.execute",
     toExecuteDelete: "delete.execute",
     toExecuteUpdate: "update.execute",
-    sendToDownloadCreate: "create.onDownloadMicroservice",
-    sendToDownloadDelete: "detele.onDownloadMicroservice",
-    sendToDownloadUpdate: "update.onDownloadMicroservice",
+    sendToDownloadCreateFile: "createFile.onDownloadMicroservice",
+    sendToDownloadDeleteFile: "deteleFile.onDownloadMicroservice",
+    sendToDownloadUpdateFile: "updateFile.onDownloadMicroservice",
+    sendToDownloadCreateAccount: "createAccount.onDownloadMicroservice",
+    sendToDownloadDeleteAccount: "deteleAccount.onDownloadMicroservice",
 };
 
 export type Payload = { topic: string; data: unknown };

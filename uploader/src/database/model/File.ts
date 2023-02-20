@@ -47,14 +47,14 @@ export class File {
     public name!: string;
     public size!: number;
     public mimeType!: string;
-    public status!: string;
+    public status!: FileStatus;
     public onDriveFile!: OnDriveFile[];
     constructor(requestInfo: FileRequestInfo) {
         this.tempDBReference = new ObjectId(requestInfo.tempDBReference);
         this.name = requestInfo.name;
         this.mimeType = requestInfo.mimeType;
         this.size = requestInfo.size;
-        this.status = "Stored on DB";
+        this.status = "Replicating...";
         this.onDriveFile = [];
     }
 }
@@ -65,6 +65,6 @@ export class FileDTO {
     public name!: string;
     public size!: number;
     public mimeType!: string;
-    public status!: string;
+    public status!: FileStatus;
     public onDriveFile!: OnDriveFile[];
 }

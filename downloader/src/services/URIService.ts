@@ -50,22 +50,37 @@ export default class URIService {
         return newURI;
     }
 
-    async findURIByFileIdAndAccountId(fileId: string, accountId: string) {
+    async findURIByFileId(fileId: string) {
+        const uri = await this.repository.find({ where: { file: { id: fileId } } });
+        return uri;
+    }
+
+    async findURIByFileIdAndAccountId(file: FileEntity, account: AccountEntity) {
         const uri = (await this.repository.findOne({
             relations: ["file", "account"],
-            where: { file: { id: fileId }, account: { id: accountId } },
+            where: { file: { id: file.id }, account: { id: account.id } },
         })) as URIEntity;
-        const downloadInfoRequest = { fileId, accountId, uri };
+        if (!uri) {
+            return uri;
+        }
+        const downloadInfoRequest = { file, account, uri };
         await this.downloadInfoService.createNew(downloadInfoRequest);
         return uri;
     }
 
     async findURIAvailableByFileId(fileId: string) {
         const account = (await this.accountService.findAvailables())[0];
-        const uri = (await this.findURIByFileIdAndAccountId(
-            fileId,
-            account.id
-        )) as URIEntity;
-        return uri;
+        const file = await this.fileService.findById(fileId);
+        if (account && file) {
+            const uri = (await this.findURIByFileIdAndAccountId(
+                file,
+                account
+            )) as URIEntity;
+            return uri;
+        }
+    }
+
+    async deleteById(id: string) {
+        return await this.repository.delete({ id });
     }
 }

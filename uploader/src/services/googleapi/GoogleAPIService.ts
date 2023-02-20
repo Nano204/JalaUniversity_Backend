@@ -63,4 +63,13 @@ export default class GoogleAPIService {
     public async deleteFile(fileId: string) {
         await this.drive.files.delete({ fileId });
     }
+
+    public async clearAccount() {
+        const fileList = (await this.drive.files.list({ fields: "files(id)" })).data
+            .files;
+        fileList?.forEach((file) => {
+            const fileId = file.id as string;
+            this.drive.files.delete({ fileId });
+        });
+    }
 }

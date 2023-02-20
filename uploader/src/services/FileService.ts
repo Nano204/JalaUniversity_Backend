@@ -16,11 +16,11 @@ import { Rabbit, TOPICS } from "./rabbitService/rabbit";
 import logger from "jet-logger";
 
 export type toDownloadObject = {
-    fileOriginId: string;
+    fileId: string;
     name: string;
     size: number;
     mimeType: string;
-    accountOriginId: string;
+    accountId: string;
     onDriveId: string;
     webContentLink: string;
 };
@@ -52,7 +52,6 @@ export default class FileService {
                     file.status = "Uploaded";
                     await this.update(file);
                 });
-                await this.update({ ...file, status: "Replicating..." });
             }
         } catch (err) {
             logger.imp(err, true);
@@ -68,16 +67,16 @@ export default class FileService {
             const accountId = account._id.toString();
             if (onDriveFile) {
                 const toDownloadObject = {
-                    fileOriginId: fileId,
+                    fileId,
                     name: file.name,
                     size: file.size,
                     mimeType: file.mimeType,
-                    accountOriginId: accountId,
+                    accountId,
                     onDriveId: onDriveFile.onDriveId,
                     webContentLink: onDriveFile.webContentLink,
                 };
                 await this.rabbitService.publishOnExchange(
-                    TOPICS.sendToDownloadCreate,
+                    TOPICS.sendToDownloadCreateFile,
                     toDownloadObject
                 );
                 onDriveFileList.push(onDriveFile);
@@ -116,7 +115,7 @@ export default class FileService {
         throw new Error("Could not upload the file");
     }
 
-    private async deleteFromAllDrives(id: string) {
+    private async deleteFileFromAllDrives(id: string) {
         const _id = new ObjectId(id);
         const file = await this.collection.findOne({ _id });
         const onDriveFileList = file?.onDriveFile;
@@ -134,7 +133,7 @@ export default class FileService {
         const newFile = this.mapToDBEntity(file);
         const storedConfirmation = await this.collection.insertOne(newFile);
         const id = storedConfirmation.insertedId.toString();
-        this.rabbitService.publishOnExchange(TOPICS.toUploadCreate, id);
+        await this.rabbitService.publishOnExchange(TOPICS.toUploadCreate, id);
         return this.findById(id);
     }
 
@@ -179,26 +178,37 @@ export default class FileService {
 
     async update(file: FileEntity) {
         const updateDoc = { $set: { ...file } };
-        const updatedFile = await this.collection.findOneAndUpdate(
+        const updatedConfirmation = await this.collection.findOneAndUpdate(
             { _id: file._id },
             updateDoc,
             { upsert: false }
         );
-        if (updatedFile.value) {
-            const _id = updatedFile.value._id;
-            return await this.collection.findOne({ _id });
+        if (updatedConfirmation.value) {
+            const _id = updatedConfirmation.value._id;
+            const updatedFile = (await this.collection.findOne({ _id })) as FileEntity;
+            if (file.name != updatedFile.name) {
+                await this.rabbitService.publishOnExchange(
+                    TOPICS.sendToDownloadUpdateFile,
+                    {
+                        id: updatedFile._id,
+                        ...updatedFile,
+                    }
+                );
+            }
+            return updatedFile;
         }
         throw new Error("Unexpected server error");
     }
 
     async deleteById(id: string) {
-        await this.deleteFromAllDrives(id);
+        await this.deleteFileFromAllDrives(id);
         const _id = new ObjectId(id);
         const document = await this.collection.findOne({ _id });
         if (document) {
             const _id = new ObjectId(document.tempDBReference);
             await this.bucket.delete(_id);
         }
+        await this.rabbitService.publishOnExchange(TOPICS.sendToDownloadDeleteFile, id);
         return await this.collection.deleteOne({ _id });
     }
 }

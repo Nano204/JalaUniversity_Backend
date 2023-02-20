@@ -5,10 +5,12 @@ import { File, FileEntity, FileRequestInfo } from "../database/model/File";
 
 export default class FileService {
     private repository: Repository<FileEntity>;
+    // private uriService: URIService;
     private mapToDBEntity: FileMapper["toDBEntity"];
 
     constructor() {
         this.repository = AppDataSource.getRepository(FileEntity);
+        // this.uriService = new URIService();
         this.mapToDBEntity = new FileMapper().toDBEntity;
     }
 
@@ -45,6 +47,7 @@ export default class FileService {
     }
 
     async deleteById(id: string) {
-        return await this.repository.delete({ id });
+        const file = (await this.repository.findOne({ where: { id } })) as FileEntity;
+        return await this.repository.delete(file);
     }
 }
