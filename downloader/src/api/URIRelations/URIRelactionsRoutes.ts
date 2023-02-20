@@ -13,7 +13,7 @@ router.get("/:id", async (req, res, next) => {
 
 router.post("/", async (req, res, next) => {
     uriRelationsController
-        .createNewRelation(req, res, next)
+        .createNewURI(req, res, next)
         .then((response) => response)
         .catch(next);
 });

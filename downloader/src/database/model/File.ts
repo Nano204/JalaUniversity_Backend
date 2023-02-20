@@ -1,8 +1,9 @@
-import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
-import { AccountInfo, AccountInfoDTO, AccountInfoEntity } from "./AccountInfo";
+import { Column, Entity, OneToMany, PrimaryColumn } from "typeorm";
+import { DownloadInfoEntity } from "./DownloadInfo";
+import { URIDTO, URIEntity } from "./URI";
 
 export type FileRequestInfo = {
-    fileOriginId: string;
+    id: string;
     name: string;
     size: number;
     mimeType: string;
@@ -10,11 +11,8 @@ export type FileRequestInfo = {
 
 @Entity()
 export class FileEntity {
-    @PrimaryGeneratedColumn("uuid")
+    @PrimaryColumn({ nullable: false, unique: true })
     public id!: string;
-
-    @Column({ nullable: false, unique: true })
-    public fileOriginId!: string;
 
     @Column({ nullable: false })
     public name!: string;
@@ -25,31 +23,31 @@ export class FileEntity {
     @Column({ nullable: false })
     public mimeType!: string;
 
-    @ManyToMany(() => AccountInfoEntity, (accountInfo) => accountInfo.files)
-    public accountsInfo!: AccountInfoEntity[];
+    @OneToMany(() => URIEntity, (uri) => uri.file)
+    public uris!: URIEntity[];
+
+    @OneToMany(() => DownloadInfoEntity, (downloadInfo) => downloadInfo.file)
+    public downloads?: DownloadInfoEntity[];
 }
 
 export class File {
     public id!: string;
-    public fileOriginId!: string;
     public name!: string;
     public size!: number;
     public mimeType!: string;
-    public accountsInfo!: AccountInfo[];
+    public uris!: URIEntity[];
     constructor(requestInfo: FileRequestInfo) {
-        this.fileOriginId = requestInfo.fileOriginId;
+        this.id = requestInfo.id;
         this.name = requestInfo.name;
         this.mimeType = requestInfo.mimeType;
         this.size = requestInfo.size;
-        this.accountsInfo = [];
     }
 }
 
 export class FileDTO {
     public id!: string;
-    public fileOriginId!: string;
     public name!: string;
     public size!: number;
     public mimeType!: string;
-    public accountsInfo!: AccountInfoDTO[];
+    public uris?: URIDTO[];
 }

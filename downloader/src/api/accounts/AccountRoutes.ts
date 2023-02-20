@@ -1,25 +1,32 @@
 import { Router } from "express";
-import AccountInfoController from "./AccountInfoController";
+import AccountController from "./AccountController";
 
 const router = Router();
-const accountInfoController = new AccountInfoController();
+const accountController = new AccountController();
 
-router.get("/search", async (req, res, next) => {
-    accountInfoController
+router.get("/availables", async (req, res, next) => {
+    accountController
         .findAvailableAccounts(req, res, next)
         .then((response) => response)
         .catch(next);
 });
 
 router.get("/:id", async (req, res, next) => {
-    accountInfoController
+    accountController
         .findAccountById(req, res, next)
         .then((response) => response)
         .catch(next);
 });
 
+router.get("/", async (req, res, next) => {
+    accountController
+        .findAllAccounts(req, res, next)
+        .then((response) => response)
+        .catch(next);
+});
+
 router.post("/", async (req, res, next) => {
-    accountInfoController
+    accountController
         .createNewAccount(req, res, next)
         .then((response) => response)
         .catch(next);

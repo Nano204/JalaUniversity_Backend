@@ -13,6 +13,6 @@ export const rabbit = new Rabbit();
 app.listen(port, () => {
     new DBInit().initializeDB().then(() => {
         console.log(`Downloader microservice listening on port ${port}`);
-        rabbit.receiveFromRabbit();
+        // rabbit.receiveFromRabbit();
     });
 });

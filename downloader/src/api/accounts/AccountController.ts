@@ -1,22 +1,22 @@
 import { NextFunction, Request, Response } from "express";
-import { AccountInfoMapper } from "../../database/mappers/AccountInfoMapper";
-import AccountInfoService from "../../services/AccountInfoService";
+import { AccountMapper } from "../../database/mappers/AccountMapper";
+import AccountService from "../../services/AccountService";
 import { BadRequestException, NotFoundException } from "../errorHandler/Exceptions";
 
-export default class AccountInfoController {
-    private accountService: AccountInfoService;
-    private mapToDTO: AccountInfoMapper["toDTO"];
+export default class AccountController {
+    private accountService: AccountService;
+    private mapToDTO: AccountMapper["toDTO"];
 
     constructor() {
-        this.accountService = new AccountInfoService();
-        this.mapToDTO = new AccountInfoMapper().toDTO;
+        this.accountService = new AccountService();
+        this.mapToDTO = new AccountMapper().toDTO;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async createNewAccount(req: Request, res: Response, next: NextFunction) {
-        const { accountOriginId, onDriveId, webContentLink } = req.body;
-        const requestInfo = { accountOriginId, onDriveId, webContentLink };
-        if (!accountOriginId || !onDriveId || !webContentLink) {
+        const { accountId, onDriveId, webContentLink } = req.body;
+        const requestInfo = { id: accountId, onDriveId, webContentLink };
+        if (!accountId || !onDriveId || !webContentLink) {
             throw new BadRequestException("One or more parameters are missing");
         }
         const newAccount = await this.accountService.createNew(requestInfo);
@@ -34,7 +34,7 @@ export default class AccountInfoController {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async findAllAccount(req: Request, res: Response, next: NextFunction) {
+    async findAllAccounts(req: Request, res: Response, next: NextFunction) {
         const accounts = await this.accountService.findAll();
         if (accounts.length) {
             const accountsDTO = accounts.map((account) => this.mapToDTO(account));
@@ -45,7 +45,7 @@ export default class AccountInfoController {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async findAvailableAccounts(req: Request, res: Response, next: NextFunction) {
-        const accounts = await this.accountService.findAvailable();
+        const accounts = await this.accountService.findAvailables();
         if (!accounts.length) {
             throw new NotFoundException();
         }

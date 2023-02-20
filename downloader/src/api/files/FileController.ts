@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from "express";
 import { FileMapper } from "../../database/mappers/FileMapper";
-import { FileRequestInfo } from "../../database/model/File";
 import FileService from "../../services/FileService";
 import { BadRequestException, NotFoundException } from "../errorHandler/Exceptions";
 
@@ -15,8 +14,8 @@ export default class FileController {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async createNewFile(req: Request, res: Response, next: NextFunction) {
-        const { fileOriginId, name, size, mimeType } = req.body;
-        const requestInfo = { fileOriginId, name, size, mimeType };
+        const { fileId, name, size, mimeType } = req.body;
+        const requestInfo = { id: fileId, name, size, mimeType };
         const newFile = await this.fileService.createNew(requestInfo);
         return res.status(202).json(this.mapToDTO(newFile));
     }
@@ -29,23 +28,6 @@ export default class FileController {
             throw new NotFoundException();
         }
         return res.status(200).json(this.mapToDTO(file));
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async findFilesByQuery(req: Request, res: Response, next: NextFunction) {
-        const { fileOriginId, name, size, mimeType } = req.query;
-        const requestInfo: FileRequestInfo = {
-            name: String(name),
-            fileOriginId: String(fileOriginId),
-            size: Number(size),
-            mimeType: String(mimeType),
-        };
-        const files = await this.fileService.findManyByQuery(requestInfo);
-        if (!files.length) {
-            throw new NotFoundException();
-        }
-        const filesDTO = files.map((file) => this.mapToDTO(file));
-        return res.status(200).json(filesDTO);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

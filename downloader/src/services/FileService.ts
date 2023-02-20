@@ -20,12 +20,11 @@ export default class FileService {
     }
 
     async findOrCreate(fileRequestInfo: FileRequestInfo) {
-        const findedAccount = await this.repository.findOne({
-            relations: ["accountsInfo"],
-            where: { fileOriginId: fileRequestInfo.fileOriginId },
+        const findedFile = await this.repository.findOne({
+            where: { id: fileRequestInfo.id },
         });
-        if (findedAccount) {
-            return findedAccount;
+        if (findedFile) {
+            return findedFile;
         }
         const file = new File(fileRequestInfo);
         const newFile = this.mapToDBEntity(file);
@@ -38,22 +37,7 @@ export default class FileService {
     }
 
     async findById(id: string) {
-        return await this.repository.findOneBy({ id });
-    }
-
-    async findByOriginId(id: string) {
-        return await this.repository.findOneBy({ fileOriginId: id });
-    }
-
-    async findByIdWithSpecificAccount(fileOriginId: string, accountId: string) {
-        return await this.repository.findOne({
-            relations: ["accountsInfo"],
-            where: { fileOriginId, accountsInfo: { id: accountId } },
-        });
-    }
-
-    async findManyByQuery(requestInfo: FileRequestInfo) {
-        return await this.repository.find({ where: { ...requestInfo } });
+        return await this.repository.findOne({ relations: ["uris"], where: { id } });
     }
 
     async update(file: FileEntity) {

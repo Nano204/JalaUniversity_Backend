@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import amqp from "amqplib";
 import env from "../env";
+import FileService from "../services/FileService";
 import URIService, { CreateRelationRequest } from "../services/URIService";
 
 export const QUEUES = {
@@ -8,9 +9,9 @@ export const QUEUES = {
 };
 
 export const TOPICS = {
-    fromUploadCreate: "create.onDownloadMicroservice",
-    fromUploadDelete: "detele.onDownloadMicroservice",
-    fromUploadUpdate: "update.onDownloadMicroservice",
+    fromUploadCreate: "createFile.onDownloadMicroservice",
+    fromUploadDelete: "deteleFile.onDownloadMicroservice",
+    fromUploadUpdate: "updateFile.onDownloadMicroservice",
 };
 
 export type Payload = { topic: string; data: unknown };
@@ -19,6 +20,7 @@ export class Rabbit {
     private amqp;
     private amqpConnectionSetting;
     private uriService;
+    private fileService;
     private static exchange = "microservices_shared_exchange";
     constructor() {
         this.amqp = amqp;
@@ -30,6 +32,7 @@ export class Rabbit {
             password: env.RABBIT_PASSWORD,
         };
         this.uriService = new URIService();
+        this.fileService = new FileService();
     }
 
     async sendToQueue(queueName: string, msg: string) {
@@ -61,7 +64,7 @@ export class Rabbit {
         const fromUploadUpdate = await this.bindQueue(channel, TOPICS.fromUploadUpdate);
 
         console.log(
-            " [*] Microservice: Uploader - Waiting for messages in %s. To exit press CTRL+C",
+            " [*] Microservice: Downloader - Waiting for messages in %s. To exit press CTRL+C",
             Rabbit.exchange
         );
 
@@ -85,19 +88,36 @@ export class Rabbit {
     selectCallbackFromQueue(payload: Payload): () => void {
         const topic = payload.topic;
 
-        const executeCreateRequest = () => {
+        const executeFileCreateRequest = () => {
             const requestInfo = payload.data as CreateRelationRequest;
-            console.log(
-                " [x] Received %s",
-                requestInfo.accountOriginId,
-                requestInfo.fileOriginId
-            );
-            this.uriService.createRelation(requestInfo);
+            console.log(" [x] Received %s", requestInfo.fileId, requestInfo.accountId);
+            this.uriService.createNew(requestInfo);
         };
+
+        // const executeFileDeleteRequest = async () => {
+        //     const id = payload.data as string;
+        //     console.log(" [x] Received %s", id);
+        //     const file = await this.fileService.findByOriginId(id);
+        //     if (file) {
+        //         await this.fileService.deleteById(file.id);
+        //     }
+        // };
+
+        // const executeFileUpdateRequest = () => {
+        //     const requestInfo = payload.data as CreateRelationRequest;
+        //     console.log(
+        //         " [x] Received %s",
+        //         requestInfo.accountOriginId,
+        //         requestInfo.fileOriginId
+        //     );
+        //     this.uriService.createRelation(requestInfo);
+        // };
 
         switch (topic) {
             case TOPICS.fromUploadCreate:
-                return executeCreateRequest;
+                return executeFileCreateRequest;
+            // case TOPICS.fromUploadDelete:
+            //     return executeFileDeleteRequest;
             default:
                 return () => {
                     throw new Error("Not assigned queue");

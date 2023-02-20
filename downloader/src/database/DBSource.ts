@@ -1,8 +1,9 @@
 import { DataSource } from "typeorm";
 import { FileEntity } from "./model/File";
-import { AccountInfoEntity } from "./model/AccountInfo";
+import { AccountEntity } from "./model/Account";
 import env from "../env";
-import { URI } from "./model/URI";
+import { URIEntity } from "./model/URI";
+import { DownloadInfoEntity } from "./model/DownloadInfo";
 
 export const AppDataSource = new DataSource({
     type: "sqlite",
@@ -11,5 +12,5 @@ export const AppDataSource = new DataSource({
     logging: false,
     migrations: [],
     subscribers: [],
-    entities: [FileEntity, AccountInfoEntity, URI],
+    entities: [FileEntity, AccountEntity, URIEntity, DownloadInfoEntity],
 });
