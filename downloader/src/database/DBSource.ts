@@ -4,6 +4,7 @@ import { AccountEntity } from "./model/Account";
 import env from "../env";
 import { URIEntity } from "./model/URI";
 import { DownloadInfoEntity } from "./model/DownloadInfo";
+import { ReportEntity } from "./model/Report";
 
 export const AppDataSource = new DataSource({
     type: "sqlite",
@@ -12,5 +13,5 @@ export const AppDataSource = new DataSource({
     logging: false,
     migrations: [],
     subscribers: [],
-    entities: [FileEntity, AccountEntity, URIEntity, DownloadInfoEntity],
+    entities: [FileEntity, AccountEntity, URIEntity, DownloadInfoEntity, ReportEntity],
 });

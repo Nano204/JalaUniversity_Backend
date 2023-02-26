@@ -11,6 +11,8 @@ export type RegistryRequestInfo = {
     webContentLink?: string;
 };
 
+export type Status = "Available" | "Deleted";
+
 @Entity()
 export class DownloadInfoEntity {
     @PrimaryGeneratedColumn("uuid")
@@ -42,6 +44,12 @@ export class DownloadInfoEntity {
 
     @Column({ nullable: false })
     public date!: number;
+
+    @Column({ nullable: false })
+    public fileStatus!: Status;
+
+    @Column({ nullable: false })
+    public accountStatus!: Status;
 }
 
 export class DownloadInfo {
@@ -55,6 +63,8 @@ export class DownloadInfo {
     public onDriveId?: string;
     public webContentLink?: string;
     public date!: number;
+    public fileStatus!: Status;
+    public accountStatus!: Status;
     constructor(requestInfo: RegistryRequestInfo) {
         this.fileId = requestInfo.fileId;
         this.fileName = requestInfo.fileName;
@@ -65,6 +75,10 @@ export class DownloadInfo {
         this.onDriveId = requestInfo.onDriveId;
         this.webContentLink = requestInfo.webContentLink;
         this.date = new Date(new Date().toUTCString()).getTime();
+        this.onDriveId = requestInfo.onDriveId;
+        this.webContentLink = requestInfo.webContentLink;
+        this.fileStatus = "Available";
+        this.accountStatus = "Available";
     }
 }
 
@@ -79,4 +93,6 @@ export class DownloadInfoDTO {
     public onDriveId?: string;
     public webContentLink?: string;
     public date!: string;
+    public fileStatus!: Status;
+    public accountStatus!: Status;
 }

@@ -116,7 +116,7 @@ export default class FileController {
                 "Id passed in must be a string of 12 bytes or a string of 24 hex characters or an integer"
             );
         }
-        const uploadFile = await this.fileService.fromGridFSToAllDrives(id);
+        const uploadFile = await this.fileService.fileFromGridFSToAllDrives(id);
         // if (!uploadFile) {
         //     throw new NotFoundException();
         // }

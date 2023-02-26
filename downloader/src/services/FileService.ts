@@ -2,15 +2,14 @@ import { Repository } from "typeorm";
 import { AppDataSource } from "../database/DBSource";
 import { FileMapper } from "../database/mappers/FileMapper";
 import { File, FileEntity, FileRequestInfo } from "../database/model/File";
+import DownloadInfoService from "./DownloadInfoService";
 
 export default class FileService {
     private repository: Repository<FileEntity>;
-    // private uriService: URIService;
     private mapToDBEntity: FileMapper["toDBEntity"];
 
     constructor() {
         this.repository = AppDataSource.getRepository(FileEntity);
-        // this.uriService = new URIService();
         this.mapToDBEntity = new FileMapper().toDBEntity;
     }
 
@@ -47,7 +46,9 @@ export default class FileService {
     }
 
     async deleteById(id: string) {
-        const file = (await this.repository.findOne({ where: { id } })) as FileEntity;
-        return await this.repository.delete(file);
+        const downloadInfoService = new DownloadInfoService();
+        await downloadInfoService.setDeleteStatusOnFileAtAllRegistries(id);
+        await downloadInfoService.sendAllInfoToStats();
+        return await this.repository.delete({ id });
     }
 }

@@ -15,6 +15,12 @@ import { AccountEntity } from "../database/model/Account";
 import { Rabbit, TOPICS } from "./rabbitService/rabbit";
 import logger from "jet-logger";
 
+type ToDownloadRequest = {
+    file: FileEntity;
+    account: AccountEntity;
+    onDriveFile: OnDriveFile;
+};
+
 export type toDownloadObject = {
     fileId: string;
     name: string;
@@ -42,98 +48,12 @@ export default class FileService {
         this.rabbitService = new Rabbit();
     }
 
-    public async fromGridFSToAllDrives(id: string) {
-        try {
-            const file = await this.findById(id);
-            if (file) {
-                const tempDBReference = file.tempDBReference.toString();
-                await this.downloadTempFileByReference(tempDBReference, async () => {
-                    file.onDriveFile = await this.uploadTempFileToAllDrives(file);
-                    file.status = "Uploaded";
-                    await this.update(file);
-                });
-            }
-        } catch (err) {
-            logger.imp(err, true);
-        }
-    }
-
-    private async uploadTempFileToAllDrives(file: FileEntity): Promise<OnDriveFile[]> {
-        const fileId = file._id.toString();
-        const accounts = await this.accountService.findAll();
-        const onDriveFileList: OnDriveFile[] = [];
-        for await (const account of accounts) {
-            const onDriveFile = await this.uploadTempFileToDrive(account, fileId);
-            const accountId = account._id.toString();
-            if (onDriveFile) {
-                const toDownloadObject = {
-                    fileId,
-                    name: file.name,
-                    size: file.size,
-                    mimeType: file.mimeType,
-                    accountId,
-                    onDriveId: onDriveFile.onDriveId,
-                    webContentLink: onDriveFile.webContentLink,
-                };
-                await this.rabbitService.publishOnExchange(
-                    TOPICS.sendToDownloadCreateFile,
-                    toDownloadObject
-                );
-                onDriveFileList.push(onDriveFile);
-            }
-        }
-        await this.deleteTempFile();
-        await this.rabbitService.publishOnExchange(TOPICS.toExecuteCreate);
-        if (onDriveFileList && onDriveFileList.length) {
-            return onDriveFileList;
-        }
-        throw new Error("Could not upload the file");
-    }
-
-    private async uploadTempFileToDrive(
-        account: AccountEntity,
-        fileId: string
-    ): Promise<OnDriveFile> {
-        const file = await this.findById(fileId);
-        if (file) {
-            const path = this.tempFilePath;
-            const googleAPIService = new GoogleAPIService(account.googleDriveKey);
-            const onlineFile = await googleAPIService.uploadFile({
-                ...file,
-                path,
-            });
-            if (onlineFile) {
-                const onDriveFile: OnDriveFile = {
-                    accountId: account._id.toString(),
-                    onDriveId: onlineFile.id,
-                    webContentLink: onlineFile.webContentLink,
-                };
-                return onDriveFile;
-            }
-            throw new Error("Could not upload the file");
-        }
-        throw new Error("Could not upload the file");
-    }
-
-    private async deleteFileFromAllDrives(id: string) {
-        const _id = new ObjectId(id);
-        const file = await this.collection.findOne({ _id });
-        const onDriveFileList = file?.onDriveFile;
-        onDriveFileList?.map(async (onlineFileData: OnDriveFile) => {
-            const account = await this.accountService.findById(onlineFileData.accountId);
-            if (account) {
-                const googleAPIService = new GoogleAPIService(account.googleDriveKey);
-                googleAPIService.deleteFile(onlineFileData.onDriveId);
-            }
-        });
-    }
-
     async createNew(fileRequestInfo: FileRequestInfo) {
         const file = new File(fileRequestInfo);
         const newFile = this.mapToDBEntity(file);
         const storedConfirmation = await this.collection.insertOne(newFile);
         const id = storedConfirmation.insertedId.toString();
-        await this.rabbitService.publishOnExchange(TOPICS.toUploadCreate, id);
+        await this.rabbitService.publishOnExchange(TOPICS.toUploadFileCreate, id);
         return this.findById(id);
     }
 
@@ -148,27 +68,6 @@ export default class FileService {
             return document as FileEntity;
         }
         return null;
-    }
-
-    async downloadTempFileByReference(reference: string, cb: () => Promise<void>) {
-        const _id = new ObjectId(reference);
-        const document = await this.bucket.find({ _id }).toArray();
-        if (document.length) {
-            this.bucket
-                .openDownloadStream(_id)
-                .pipe(fs.createWriteStream(this.tempFilePath))
-                .once("finish", () => {
-                    cb();
-                });
-        }
-    }
-
-    async deleteTempFile() {
-        fs.unlink(this.tempFilePath, (err) => {
-            if (err) {
-                throw err;
-            }
-        });
     }
 
     async findManyByQuery(queryIfo: FileQueryInfo): Promise<FileEntity[]> {
@@ -210,5 +109,164 @@ export default class FileService {
         }
         await this.rabbitService.publishOnExchange(TOPICS.sendToDownloadDeleteFile, id);
         return await this.collection.deleteOne({ _id });
+    }
+
+    async downloadTempFileByReference(reference: string, cb: () => Promise<void>) {
+        const _id = new ObjectId(reference);
+        const document = await this.bucket.find({ _id }).toArray();
+        if (document.length) {
+            this.bucket
+                .openDownloadStream(_id)
+                .pipe(fs.createWriteStream(this.tempFilePath))
+                .once("finish", () => {
+                    cb();
+                });
+        }
+    }
+
+    async deleteTempFile() {
+        fs.unlink(this.tempFilePath, (err) => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+
+    private async sendToDownloaderURI(toDownloadRequest: ToDownloadRequest) {
+        const { file, account, onDriveFile } = toDownloadRequest;
+        const accountId = account._id.toString();
+        const fileId = file._id.toString();
+        const toDownloadObject = {
+            fileId,
+            name: file.name,
+            size: file.size,
+            mimeType: file.mimeType,
+            accountId,
+            onDriveId: onDriveFile.onDriveId,
+            webContentLink: onDriveFile.webContentLink,
+        };
+        await this.rabbitService.publishOnExchange(
+            TOPICS.sendToDownloadCreateFile,
+            toDownloadObject
+        );
+        return toDownloadObject;
+    }
+
+    private async uploadTempFileToDrive(
+        account: AccountEntity,
+        file: FileEntity
+    ): Promise<OnDriveFile> {
+        const path = this.tempFilePath;
+        const googleAPIService = new GoogleAPIService(account.googleDriveKey);
+        const onlineFile = await googleAPIService.uploadFile({
+            ...file,
+            path,
+        });
+        if (onlineFile) {
+            const onDriveFile: OnDriveFile = {
+                accountId: account._id.toString(),
+                onDriveId: onlineFile.id,
+                webContentLink: onlineFile.webContentLink,
+            };
+            return onDriveFile;
+        }
+        throw new Error("Could not upload the file");
+    }
+
+    private async uploadTempFileToAllDrives(file: FileEntity): Promise<OnDriveFile[]> {
+        const accounts = await this.accountService.findAll();
+        const onDriveFileList: OnDriveFile[] = [];
+        for await (const account of accounts) {
+            const accountId = account._id.toString();
+            const condition = file.onDriveFile.some(
+                (onDriveInfo) => onDriveInfo.accountId == accountId
+            );
+            if (!condition) {
+                const onDriveFile = await this.uploadTempFileToDrive(account, file);
+                const toDownloadRequest = { file, account, onDriveFile };
+                await this.sendToDownloaderURI(toDownloadRequest);
+                onDriveFileList.push(onDriveFile);
+            }
+        }
+        await this.deleteTempFile();
+        await this.rabbitService.publishOnExchange(TOPICS.toExecuteCreate);
+        if (onDriveFileList && onDriveFileList.length) {
+            return onDriveFileList;
+        }
+        throw new Error("Could not upload the file");
+    }
+
+    public async allFilesfromGridFSToDrive(accountId: string) {
+        try {
+            const account = await this.accountService.findById(accountId);
+            const files = await this.findAll();
+            if (files.length) {
+                for await (const file of files) {
+                    const tempDBReference = file.tempDBReference.toString();
+                    const condition = file.onDriveFile.some(
+                        (onDriveInfo) => onDriveInfo.accountId == accountId
+                    );
+                    if (!condition) {
+                        await this.downloadTempFileByReference(
+                            tempDBReference,
+                            async () => {
+                                const onDriveFile = await this.uploadTempFileToDrive(
+                                    account,
+                                    file
+                                );
+                                const toDownloadRequest = { file, account, onDriveFile };
+                                await this.sendToDownloaderURI(toDownloadRequest);
+                                file.onDriveFile.push(onDriveFile);
+                                await this.update(file);
+                            }
+                        );
+                    }
+                }
+                await this.deleteTempFile();
+                await this.rabbitService.publishOnExchange(TOPICS.toExecuteCreate);
+            }
+        } catch (err) {
+            logger.imp(err, true);
+        }
+    }
+
+    public async fileFromGridFSToAllDrives(id: string) {
+        try {
+            const file = await this.findById(id);
+            if (file) {
+                const tempDBReference = file.tempDBReference.toString();
+                await this.downloadTempFileByReference(tempDBReference, async () => {
+                    file.onDriveFile = await this.uploadTempFileToAllDrives(file);
+                    file.status = "Uploaded";
+                    await this.update(file);
+                });
+            }
+        } catch (err) {
+            logger.imp(err, true);
+        }
+    }
+
+    private async deleteFileFromAllDrives(id: string) {
+        const _id = new ObjectId(id);
+        const file = await this.collection.findOne({ _id });
+        const onDriveFileList = file?.onDriveFile;
+        onDriveFileList?.map(async (onlineFileData: OnDriveFile) => {
+            const account = await this.accountService.findById(onlineFileData.accountId);
+            if (account) {
+                const googleAPIService = new GoogleAPIService(account.googleDriveKey);
+                googleAPIService.deleteFile(onlineFileData.onDriveId);
+            }
+        });
+    }
+
+    public async deleteReferencesFromAccount(account: AccountEntity) {
+        const files = await this.findAll();
+        const accountId = account._id.toString();
+        for await (const file of files) {
+            file.onDriveFile = file.onDriveFile.filter(
+                (onDriveReference) => onDriveReference.accountId != accountId
+            );
+            await this.update(file);
+        }
     }
 }

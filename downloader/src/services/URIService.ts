@@ -1,5 +1,6 @@
 import { Repository } from "typeorm";
 import { AppDataSource } from "../database/DBSource";
+import { URIMapper } from "../database/mappers/URIMapper";
 import { AccountEntity } from "../database/model/Account";
 import { FileEntity } from "../database/model/File";
 import { URI, URIEntity } from "../database/model/URI";
@@ -26,27 +27,25 @@ export type AssociateFileAccountRequest = {
 
 export default class URIService {
     private repository: Repository<URIEntity>;
-    private accountService: AccountService;
-    private fileService: FileService;
-    private downloadInfoService: DownloadInfoService;
+    private mapToDBEntity: URIMapper["toDBEntity"];
 
     constructor() {
         this.repository = AppDataSource.getRepository(URIEntity);
-        this.accountService = new AccountService();
-        this.fileService = new FileService();
-        this.downloadInfoService = new DownloadInfoService();
+        this.mapToDBEntity = new URIMapper().toDBEntity;
     }
 
     async createNew(requestInfo: CreateRelationRequest) {
+        const fileService = new FileService();
+        const accountService = new AccountService();
         const { fileId, accountId, name, size, mimeType, onDriveId, webContentLink } =
             requestInfo;
         const fileRequestInfo = { id: fileId, name, size, mimeType };
-        const file = await this.fileService.findOrCreate(fileRequestInfo);
+        const file = await fileService.findOrCreate(fileRequestInfo);
         const accountRequestInfo = { id: accountId };
-        const account = await this.accountService.findOrCreate(accountRequestInfo);
+        const account = await accountService.findOrCreate(accountRequestInfo);
         const uriRequest = { file, account, onDriveId, webContentLink };
         const uri = new URI(uriRequest);
-        const newURI = await this.repository.save(uri);
+        const newURI = await this.repository.save(this.mapToDBEntity(uri));
         return newURI;
     }
 
@@ -56,6 +55,7 @@ export default class URIService {
     }
 
     async findURIByFileIdAndAccountId(file: FileEntity, account: AccountEntity) {
+        const downloadInfoService = new DownloadInfoService();
         const uri = (await this.repository.findOne({
             relations: ["file", "account"],
             where: { file: { id: file.id }, account: { id: account.id } },
@@ -64,13 +64,15 @@ export default class URIService {
             return uri;
         }
         const downloadInfoRequest = { file, account, uri };
-        await this.downloadInfoService.createNew(downloadInfoRequest);
+        await downloadInfoService.createNew(downloadInfoRequest);
         return uri;
     }
 
     async findURIAvailableByFileId(fileId: string) {
-        const account = (await this.accountService.findAvailables())[0];
-        const file = await this.fileService.findById(fileId);
+        const fileService = new FileService();
+        const accountService = new AccountService();
+        const account = await accountService.findFirstAvailable();
+        const file = await fileService.findById(fileId);
         if (account && file) {
             const uri = (await this.findURIByFileIdAndAccountId(
                 file,
@@ -78,9 +80,5 @@ export default class URIService {
             )) as URIEntity;
             return uri;
         }
-    }
-
-    async deleteById(id: string) {
-        return await this.repository.delete({ id });
     }
 }

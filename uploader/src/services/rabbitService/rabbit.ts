@@ -3,9 +3,10 @@ import amqp from "amqplib";
 import FileService from "../FileService";
 
 export const TOPICS = {
-    toUploadCreate: "create.toQueue",
-    toUploadDelete: "delete.toQueue",
-    toUploadUpdate: "update.toQueue",
+    toUploadFileCreate: "create.file.toQueue",
+    toUploadAccountCreate: "create.account.toQueue",
+    toUploadDelete: "delete.file.toQueue",
+    toUploadUpdate: "update.file.toQueue",
     toExecuteCreate: "create.execute",
     toExecuteDelete: "delete.execute",
     toExecuteUpdate: "update.execute",
@@ -59,7 +60,14 @@ export class Rabbit {
         const exchangeProperties = { durable: false };
         await channel.assertExchange(Rabbit.exchange, "topic", exchangeProperties);
 
-        const toUploadCreate = await this.bindQueue(channel, TOPICS.toUploadCreate);
+        const toUploadFileCreate = await this.bindQueue(
+            channel,
+            TOPICS.toUploadFileCreate
+        );
+        const toUploadAccountCreate = await this.bindQueue(
+            channel,
+            TOPICS.toUploadAccountCreate
+        );
         const toUploadDelete = await this.bindQueue(channel, TOPICS.toUploadDelete);
         const toUploadUpdate = await this.bindQueue(channel, TOPICS.toUploadUpdate);
         const toExcecuteCreate = await this.bindQueue(channel, TOPICS.toExecuteCreate);
@@ -83,7 +91,8 @@ export class Rabbit {
             console.log();
         };
 
-        channel.consume(toUploadCreate, onMessage, { noAck: true });
+        channel.consume(toUploadFileCreate, onMessage, { noAck: true });
+        channel.consume(toUploadAccountCreate, onMessage, { noAck: true });
         channel.consume(toUploadDelete, onMessage, { noAck: true });
         channel.consume(toUploadUpdate, onMessage, { noAck: true });
         channel.consume(toExcecuteCreate, onMessage, { noAck: true });
@@ -94,10 +103,21 @@ export class Rabbit {
     selectCallbackFromQueue(payload: Payload): () => void {
         const topic = payload.topic;
 
-        const pushOnUploadQueue = () => {
+        const pushOnUploadToQueue = () => {
             const data = payload.data as string;
             const fileService = new FileService();
-            const execution = () => fileService.fromGridFSToAllDrives(data);
+            const execution = () => fileService.fileFromGridFSToAllDrives(data);
+            Rabbit.executionQueue.push(execution);
+            console.log("Add function - ", Rabbit.executionQueue.length);
+            if (Rabbit.executionQueue.length == 1) {
+                Rabbit.executionQueue[0]();
+            }
+        };
+
+        const pushOnCreateAccountToQueue = () => {
+            const data = payload.data as string;
+            const fileService = new FileService();
+            const execution = () => fileService.allFilesfromGridFSToDrive(data);
             Rabbit.executionQueue.push(execution);
             console.log("Add function - ", Rabbit.executionQueue.length);
             if (Rabbit.executionQueue.length == 1) {
@@ -109,13 +129,16 @@ export class Rabbit {
             console.log("Execute function - ", Rabbit.executionQueue.length);
             Rabbit.executionQueue.shift();
             if (Rabbit.executionQueue.length) {
+                console.log(Rabbit.executionQueue[0].name);
                 Rabbit.executionQueue[0]();
             }
         };
 
         switch (topic) {
-            case TOPICS.toUploadCreate:
-                return pushOnUploadQueue;
+            case TOPICS.toUploadFileCreate:
+                return pushOnUploadToQueue;
+            case TOPICS.toUploadAccountCreate:
+                return pushOnCreateAccountToQueue;
             case TOPICS.toExecuteCreate:
                 return executeNextUploadTask;
             default:

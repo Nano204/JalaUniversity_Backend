@@ -10,7 +10,7 @@ import {
 import { FileEntity } from "../database/model/File";
 import { URIEntity } from "../database/model/URI";
 import AccountService from "./AccountService";
-import FileService from "./FileService";
+import { Rabbit, TOPICS } from "./rabbit-service/rabbit";
 
 export type CreateRegistryRequest = {
     file: FileEntity;
@@ -20,28 +20,36 @@ export type CreateRegistryRequest = {
 
 export default class DownloadInfoService {
     private repository: Repository<DownloadInfoEntity>;
-    private accountService: AccountService;
-    private fileService: FileService;
     private mapToDBEntity: DownloadInfoMapper["toDBEntity"];
 
     constructor() {
         this.repository = AppDataSource.getRepository(DownloadInfoEntity);
-        this.accountService = new AccountService();
-        this.fileService = new FileService();
         this.mapToDBEntity = new DownloadInfoMapper().toDBEntity;
     }
 
     async createNew(requestInfo: CreateRegistryRequest) {
+        const accountService = new AccountService();
         const { file, account } = requestInfo;
         account.lastDownloadDate = new Date().getTime();
         account.lastDateTotalDownloadSize += file.size;
-        this.accountService.update(account);
+        accountService.update(account);
         const entityRequestInfo = this.createEntityRequestInfo(requestInfo);
         const registry = new DownloadInfo(entityRequestInfo);
-        return await this.repository.save(this.mapToDBEntity(registry));
+        const newRegistry = await this.repository.save(this.mapToDBEntity(registry));
+        this.sendAllInfoToStats();
+        return newRegistry;
     }
 
-    createEntityRequestInfo(requestInfo: CreateRegistryRequest) {
+    async sendAllInfoToStats() {
+        const rabbitService = new Rabbit();
+        const registers = await this.findAll();
+        return rabbitService.publishOnExchange(
+            TOPICS.sendToStatsCreateReport,
+            JSON.stringify(registers)
+        );
+    }
+
+    private createEntityRequestInfo(requestInfo: CreateRegistryRequest) {
         const registryRequestInfo: RegistryRequestInfo = {
             fileId: requestInfo.file.id,
             fileName: requestInfo.file.name,
@@ -66,5 +74,25 @@ export default class DownloadInfoService {
 
     async findAll() {
         return await this.repository.find();
+    }
+
+    async update(registry: DownloadInfoEntity) {
+        return await this.repository.save(registry);
+    }
+
+    async setDeleteStatusOnAccountAtAllRegistries(accountId: string) {
+        const registries = await this.repository.find({ where: { accountId } });
+        for await (const registry of registries) {
+            registry.accountStatus = "Deleted";
+            await this.update(registry);
+        }
+    }
+
+    async setDeleteStatusOnFileAtAllRegistries(fileId: string) {
+        const registries = await this.repository.find({ where: { fileId } });
+        for await (const registry of registries) {
+            registry.fileStatus = "Deleted";
+            await this.update(registry);
+        }
     }
 }

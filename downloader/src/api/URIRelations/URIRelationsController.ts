@@ -27,14 +27,4 @@ export default class URIRelationsController {
         }
         return res.status(200).json(this.mapToDTO(uri));
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async deleteURIById(req: Request, res: Response, next: NextFunction) {
-        const { id } = req.params;
-        const uri = await this.uriService.deleteById(id);
-        if (!uri) {
-            throw new NotFoundException();
-        }
-        return uri;
-    }
 }

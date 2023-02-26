@@ -11,6 +11,8 @@ export class DownloadInfoMapper {
         downloadInfoEntity.uriId = downloadInfo.uriId;
         downloadInfoEntity.onDriveId = downloadInfo.onDriveId;
         downloadInfoEntity.webContentLink = downloadInfo.webContentLink;
+        downloadInfoEntity.fileStatus = downloadInfo.fileStatus;
+        downloadInfoEntity.accountStatus = downloadInfo.accountStatus;
         downloadInfoEntity.date = downloadInfo.date;
         return downloadInfoEntity;
     }
@@ -27,6 +29,8 @@ export class DownloadInfoMapper {
         downloadInfoDTO.onDriveId = downloadInfo.onDriveId;
         downloadInfoDTO.webContentLink = downloadInfo.webContentLink;
         downloadInfoDTO.date = new Date(downloadInfo.date).toString();
+        downloadInfoDTO.fileStatus = downloadInfo.fileStatus;
+        downloadInfoDTO.accountStatus = downloadInfo.accountStatus;
         return downloadInfoDTO;
     }
 }

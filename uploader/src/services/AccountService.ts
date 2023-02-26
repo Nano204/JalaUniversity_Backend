@@ -7,6 +7,7 @@ import {
     AccountEntity,
     CreateAccountRequestInfo,
 } from "../database/model/Account";
+import FileService from "./FileService";
 import GoogleAPIService from "./googleapi/GoogleAPIService";
 import { Rabbit, TOPICS } from "./rabbitService/rabbit";
 
@@ -25,9 +26,11 @@ export default class AccountService {
 
     async createNew(accountRequestInfo: CreateAccountRequestInfo) {
         const account = new Account(accountRequestInfo);
-        const newAccount = this.mapToDBEntity(account);
-        await this.collection.insertOne(newAccount);
-        return newAccount;
+        const accountEntity = this.mapToDBEntity(account);
+        const accountConfirm = await this.collection.insertOne(accountEntity);
+        const accountId = accountConfirm.insertedId.toString();
+        await this.rabbitService.publishOnExchange(TOPICS.toUploadAccountCreate, accountId);
+        return this.findById(accountId);
     }
 
     async findAll() {
@@ -59,20 +62,21 @@ export default class AccountService {
         throw new Error("Unexpected server error");
     }
 
-    async deleteAllFilesFromDrive(id: string) {
-        const account = await this.findById(id);
+    async deleteAllFilesFromDrive(account: AccountEntity) {
         const googleAPIService = new GoogleAPIService(account.googleDriveKey);
         await googleAPIService.clearAccount();
     }
 
     async deleteById(id: string) {
-        // await this.deleteAllFilesFromDrive(id);
+        const account = await this.findById(id);
+        await this.deleteAllFilesFromDrive(account);
+        const fileService = new FileService();
+        fileService.deleteReferencesFromAccount(account);
         const _id = new ObjectId(id);
         await this.rabbitService.publishOnExchange(
             TOPICS.sendToDownloadDeleteAccount,
             id
         );
-        return { deletedCount: 1 };
         return await this.collection.deleteOne({ _id });
     }
 }

@@ -2,6 +2,7 @@ import { LessThan, Repository } from "typeorm";
 import { AppDataSource } from "../database/DBSource";
 import { AccountMapper } from "../database/mappers/AccountMapper";
 import { Account, AccountEntity, AccountRequestInfo } from "../database/model/Account";
+import DownloadInfoService from "./DownloadInfoService";
 
 export default class AccountService {
     private repository: Repository<AccountEntity>;
@@ -48,6 +49,9 @@ export default class AccountService {
     }
 
     async deleteById(id: string) {
+        const downloadInfoService = new DownloadInfoService();
+        await downloadInfoService.setDeleteStatusOnAccountAtAllRegistries(id);
+        await downloadInfoService.sendAllInfoToStats();
         return await this.repository.delete({ id });
     }
 
@@ -65,19 +69,20 @@ export default class AccountService {
         return accounts;
     }
 
-    // async chargeDownloadSize(id: string, size: number) {
-    //     const account = await this.repository.findOneBy({ id });
-    //     if (account) {
-    //         account.lastDateDownloadSize += size;
-    //         return await this.repository.save(account);
-    //     }
-    // }
+    async findFirstAvailable() {
+        const account = (await this.findAvailables())[0];
+        const availableAccount = await this.resetTodayDownloadsSize(account);
+        return availableAccount;
+    }
 
-    // async resetDownloadSize(id: string) {
-    //     const account = await this.repository.findOneBy({ id });
-    //     if (account) {
-    //         account.lastDateDownloadSize = 0;
-    //         return await this.repository.save(account);
-    //     }
-    // }
+    async resetTodayDownloadsSize(account: AccountEntity) {
+        const dateNow = new Date(new Date().toUTCString());
+        const todayStart = dateNow.setHours(0, 0, 0, 0);
+        const lastDownloadDate = account.lastDownloadDate;
+        if (lastDownloadDate < todayStart) {
+            account.lastDateTotalDownloadSize = 0;
+            return await this.update(account);
+        }
+        return account;
+    }
 }

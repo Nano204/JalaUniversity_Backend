@@ -5,10 +5,7 @@ import env from "../../env";
 import FileService from "../../services/FileService";
 import URIService, { CreateRelationRequest } from "../../services/URIService";
 import AccountService from "../AccountService";
-
-export const QUEUES = {
-    receiveFromUploadService: "Upload-download-connection",
-};
+import ReportService from "../ReportService";
 
 export const TOPICS = {
     fromUploadCreateFile: "createFile.onDownloadMicroservice",
@@ -16,6 +13,8 @@ export const TOPICS = {
     fromUploadUpdateFile: "updateFile.onDownloadMicroservice",
     fromUploadCreateAccount: "createAccount.onDownloadMicroservice",
     fromUploadDeleteAccount: "deteleAccount.onDownloadMicroservice",
+    sendToStatsCreateReport: "createReport.onStatsMicroservice",
+    fromStatsStoreReport: "storeReport.onDownloadMicroservice",
 };
 
 export type Payload = { topic: string; data: unknown };
@@ -41,13 +40,14 @@ export class Rabbit {
         this.accountService = new AccountService();
     }
 
-    async publishOnExchange(queueName: string, msg: string) {
+    async publishOnExchange(topic: string, data?: unknown) {
         const connection = await this.amqp.connect(this.amqpConnectionSetting);
         const channel = await connection.createChannel();
-        const queueProperties = { durable: false };
-        await channel.assertQueue(queueName, queueProperties);
-        channel.sendToQueue(queueName, Buffer.from(msg));
-        console.log(" [x] Sent %s", msg);
+        const exchangeProperties = { durable: false };
+        await channel.assertExchange(Rabbit.exchange, "topic", exchangeProperties);
+        const payload = JSON.stringify({ topic, data });
+        channel.publish(Rabbit.exchange, topic, Buffer.from(payload));
+        console.log(" [x] Sent %s", topic);
         setTimeout(function () {
             connection.close();
         }, 500);
@@ -85,7 +85,10 @@ export class Rabbit {
             channel,
             TOPICS.fromUploadDeleteAccount
         );
-
+        const fromStatsStoreReport = await this.bindQueue(
+            channel,
+            TOPICS.fromStatsStoreReport
+        );
         console.log(
             " [*] Microservice: Downloader - Waiting for messages in %s. To exit press CTRL+C",
             Rabbit.exchange
@@ -106,6 +109,7 @@ export class Rabbit {
         channel.consume(fromUploadDeleteFile, onMessage, { noAck: true });
         channel.consume(fromUploadUpdateFile, onMessage, { noAck: true });
         channel.consume(fromUploadCreateAccount, onMessage, { noAck: true });
+        channel.consume(fromStatsStoreReport, onMessage, { noAck: true });
     }
 
     selectCallbackFromQueue(payload: Payload): () => void {
@@ -150,6 +154,19 @@ export class Rabbit {
             console.log();
         };
 
+        const executeStoreReports = async () => {
+            const reports = JSON.parse(payload.data as string);
+            const accountsReport = JSON.stringify(reports.accountsReport);
+            const filesReport = JSON.stringify(reports.filesReport);
+            console.log(" [x] Received %s", "JSON Reports");
+            const reportService = new ReportService();
+            await reportService.updateOrCreateByType("accounts", accountsReport);
+            await reportService.updateOrCreateByType("files", filesReport);
+            console.log("  -  Store reports suscceded %s");
+            console.log("--------------");
+            console.log();
+        };
+
         switch (topic) {
             case TOPICS.fromUploadCreateFile:
                 return executeFileCreateRequest;
@@ -159,6 +176,8 @@ export class Rabbit {
                 return executeFileUpdateRequest;
             case TOPICS.fromUploadDeleteAccount:
                 return executeAccountDeleteRequest;
+            case TOPICS.fromStatsStoreReport:
+                return executeStoreReports;
             default:
                 return () => {
                     throw new Error("Not assigned queue");

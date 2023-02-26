@@ -1,15 +1,14 @@
-import express, { Request, Response } from "express";
+import express from "express";
 import { config as dotenvConfig } from "dotenv";
+import { Rabbit } from "./services/rabbit-service/rabbit";
 
 dotenvConfig();
 
 const app = express();
 const port = process.env.PORT || 3000;
-
-app.get("/", (req: Request, res: Response) => {
-    res.send("Hello World!");
-});
+export const rabbit = new Rabbit();
 
 app.listen(port, () => {
     console.log(`Stats microservice listening on port ${port}`);
+    rabbit.receiveFromRabbit();
 });
