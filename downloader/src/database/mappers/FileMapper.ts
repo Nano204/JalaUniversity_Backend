@@ -8,6 +8,11 @@ export class FileMapper {
         fileEntity.name = file.name;
         fileEntity.size = file.size;
         fileEntity.mimeType = file.mimeType;
+        fileEntity.totalDownloadSize = file.totalDownloadSize;
+        fileEntity.lastDownloadDate = file.lastDownloadDate;
+        fileEntity.totalDownloadsCount = file.totalDownloadsCount;
+        fileEntity.todayTotalDownloadSize = file.todayTotalDownloadSize;
+        fileEntity.todayTotalDownloadsCount = file.todayTotalDownloadsCount;
         fileEntity.uris = file.uris?.map((uri) => new URIMapper().toDBEntity(uri));
         return fileEntity;
     }
@@ -18,6 +23,10 @@ export class FileMapper {
         fileDTO.name = file.name;
         fileDTO.size = file.size;
         fileDTO.mimeType = file.mimeType;
+        fileDTO.totalDownloadSize = file.totalDownloadSize;
+        fileDTO.totalDownloadsCount = file.totalDownloadsCount;
+        fileDTO.todayTotalDownloadSize = file.todayTotalDownloadSize;
+        fileDTO.todayTotalDownloadsCount = file.todayTotalDownloadsCount;
         if (file.uris) {
             fileDTO.uris = file.uris.map((uri) => new URIMapper().toDTO(uri));
         }

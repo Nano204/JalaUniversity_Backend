@@ -51,4 +51,16 @@ export default class FileService {
         await downloadInfoService.sendAllInfoToStats();
         return await this.repository.delete({ id });
     }
+
+    async resetTodayDownloadsSize(file: FileEntity) {
+        const dateNow = new Date(new Date().toUTCString());
+        const todayStart = dateNow.setHours(0, 0, 0, 0);
+        const lastDownloadDate = file.lastDownloadDate;
+        if (lastDownloadDate < todayStart) {
+            file.todayTotalDownloadSize = 0;
+            file.todayTotalDownloadsCount = 0;
+            return await this.update(file);
+        }
+        return file;
+    }
 }

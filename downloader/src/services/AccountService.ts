@@ -81,6 +81,7 @@ export default class AccountService {
         const lastDownloadDate = account.lastDownloadDate;
         if (lastDownloadDate < todayStart) {
             account.lastDateTotalDownloadSize = 0;
+            account.lastDateTotalDownloadsCount = 0;
             return await this.update(account);
         }
         return account;

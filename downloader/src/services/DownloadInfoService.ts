@@ -10,6 +10,7 @@ import {
 import { FileEntity } from "../database/model/File";
 import { URIEntity } from "../database/model/URI";
 import AccountService from "./AccountService";
+import FileService from "./FileService";
 import { Rabbit, TOPICS } from "./rabbit-service/rabbit";
 
 export type CreateRegistryRequest = {
@@ -29,10 +30,21 @@ export default class DownloadInfoService {
 
     async createNew(requestInfo: CreateRegistryRequest) {
         const accountService = new AccountService();
+        const fileService = new FileService();
         const { file, account } = requestInfo;
-        account.lastDownloadDate = new Date().getTime();
+        const date = new Date().getTime();
+        account.lastDownloadDate = date;
         account.lastDateTotalDownloadSize += file.size;
+        account.totalDownloadSize += file.size;
+        account.totalDownloadsCount += 1;
+        account.lastDateTotalDownloadsCount += 1;
         accountService.update(account);
+        file.lastDownloadDate = date;
+        file.todayTotalDownloadSize += file.size;
+        file.totalDownloadSize += file.size;
+        file.totalDownloadsCount += 1;
+        file.todayTotalDownloadsCount += 1;
+        fileService.update(file);
         const entityRequestInfo = this.createEntityRequestInfo(requestInfo);
         const registry = new DownloadInfo(entityRequestInfo);
         const newRegistry = await this.repository.save(this.mapToDBEntity(registry));
