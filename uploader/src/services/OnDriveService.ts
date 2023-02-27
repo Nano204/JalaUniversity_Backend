@@ -164,11 +164,7 @@ export class OnDriveService {
                         await this.sendToDownloaderURI(toDownloadRequest);
                         file.onDriveFile.push(onDriveFile);
                         await fileService.update(file);
-                        try {
-                            await fileService.deleteTempFile();
-                        } catch (error) {
-                            logger.err(error);
-                        }
+                        await fileService.deleteTempFile();
                     }
                 }
             }
