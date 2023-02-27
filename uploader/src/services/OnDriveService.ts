@@ -6,6 +6,8 @@ import FileService from "./FileService";
 import GoogleAPIService from "./googleapi/GoogleAPIService";
 import { Rabbit, TOPICS } from "./rabbitService/rabbit";
 import logger from "jet-logger";
+import { Point } from "@influxdata/influxdb-client";
+import InfluxDbService from "./influxDbService/InfluxDbService";
 
 type ToDownloadRequest = {
     file: FileEntity;
@@ -30,6 +32,17 @@ export class OnDriveService {
         this.tempFilePath = env.TEMPFILE_PATH as string;
     }
 
+    private sendUploadedSignal(file: FileEntity, account: AccountEntity) {
+        const accountId = account._id.toString();
+        const point = new Point("file_uploaded")
+            .tag("filename", file.name)
+            .tag("account", accountId)
+            .intField("size", file.size)
+            .timestamp(new Date());
+        const influxDbService = new InfluxDbService();
+        influxDbService.writeApi.writePoints([point]);
+    }
+
     async deleteAllFilesFromDriveAccount(account: AccountEntity) {
         const rabbitService = new Rabbit();
         try {
@@ -42,7 +55,7 @@ export class OnDriveService {
         }
     }
 
-    private async deleteFileFromAllDrivesAccounts(id: string) {
+    async deleteFileFromAllDrivesAccounts(id: string) {
         try {
             const fileService = new FileService();
             const accountService = new AccountService();
@@ -77,6 +90,7 @@ export class OnDriveService {
                     onDriveId: onlineFile.id,
                     webContentLink: onlineFile.webContentLink,
                 };
+                this.sendUploadedSignal(file, account);
                 return onDriveFile;
             }
             throw new Error("Could not upload the file");
@@ -150,7 +164,11 @@ export class OnDriveService {
                         await this.sendToDownloaderURI(toDownloadRequest);
                         file.onDriveFile.push(onDriveFile);
                         await fileService.update(file);
-                        await fileService.deleteTempFile();
+                        try {
+                            await fileService.deleteTempFile();
+                        } catch (error) {
+                            logger.err(error);
+                        }
                     }
                 }
             }

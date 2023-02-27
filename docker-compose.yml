@@ -11,3 +11,39 @@ services:
     ports:
       - "15672:15672"
       - "5672:5672"
+   
+  influxdb:
+    image: influxdb:2.6
+    container_name: influxdb
+    restart: unless-stopped
+    environment:
+      - INFLUXDB_DB=influx
+      - INFLUXDB_ADMIN_USER=nano
+      - INFLUXDB_ADMIN_PASSWORD=microservices
+    ports:
+      - '8086:8086'
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+  
+  grafana:
+    image: grafana/grafana:9.3.6
+    container_name: grafana-server
+    restart: always
+    depends_on:
+      - influxdb
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,briangann-gauge-panel,natel-plotly-panel,grafana-simple-json-datasource
+    user: "0"
+    links:
+      - influxdb
+    ports:
+      - '3005:3000'
+    volumes:
+      - grafana_data:/var/lib/grafana
+  
+volumes:
+  grafana_data: {}
+  influxdb_data: {}
+  chronograf-storage: {}

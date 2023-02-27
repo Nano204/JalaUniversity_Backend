@@ -10,6 +10,7 @@
         "test:nocover": "jest --runInBand"
     },
     "dependencies": {
+        "@influxdata/influxdb-client": "^1.33.2",
         "@types/amqp": "^0.2.5",
         "@types/jest": "^29.4.0",
         "amqplib": "^0.10.3",

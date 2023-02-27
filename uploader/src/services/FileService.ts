@@ -5,6 +5,7 @@ import { FileMapper } from "../database/mappers/FileMapper";
 import { FileRequestInfo, File, FileEntity, FileQueryInfo } from "../database/model/File";
 import { Rabbit, TOPICS } from "./rabbitService/rabbit";
 import env from "../env";
+import { OnDriveService } from "./OnDriveService";
 
 export default class FileService {
     private collection: Collection;
@@ -71,7 +72,8 @@ export default class FileService {
     }
 
     async deleteById(id: string) {
-        // await this.deleteFileFromAllDrives(id);
+        const onDriveService = new OnDriveService();
+        await onDriveService.deleteFileFromAllDrivesAccounts(id);
         const _id = new ObjectId(id);
         const document = await this.collection.findOne({ _id });
         if (document) {
@@ -99,10 +101,13 @@ export default class FileService {
     }
 
     async deleteTempFile() {
-        fs.unlink(this.tempFilePath, (err) => {
-            if (err) {
-                throw err;
-            }
+        await new Promise<void>((resolve) => {
+            fs.unlink(this.tempFilePath, (err) => {
+                if (err) {
+                    throw err;
+                }
+                return resolve();
+            });
         });
     }
 }

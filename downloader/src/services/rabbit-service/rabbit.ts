@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Point } from "@influxdata/influxdb-client";
 import amqp from "amqplib";
 import { File } from "../../database/model/File";
 import env from "../../env";
 import FileService from "../../services/FileService";
 import URIService, { CreateRelationRequest } from "../../services/URIService";
 import AccountService from "../AccountService";
+import InfluxDbService from "../influxDbService/InfluxDbService";
 import ReportService from "../ReportService";
 
 export const TOPICS = {
@@ -112,6 +114,38 @@ export class Rabbit {
         channel.consume(fromStatsStoreReport, onMessage, { noAck: true });
     }
 
+    sendSignals(report: ReturnType<JSON["parse"]>) {
+        const accountsReport = report.accountsReport;
+        const filesReport = report.filesReport;
+        const pointsArray: Point[] = [];
+        accountsReport.length &&
+            accountsReport.forEach((account: any) => {
+                const point = new Point("account_use")
+                    .tag("account", account.accountId)
+                    .tag("status", account.accountStatus)
+                    .intField("totalDownloadSize", account.totalDownloadSize)
+                    .intField("downloadUsages", account.downloadUsages)
+                    .timestamp(new Date());
+                pointsArray.push(point);
+            });
+        filesReport.length &&
+            filesReport.forEach((file: any) => {
+                const point = new Point("file_use")
+                    .tag("file", file.fileId)
+                    .tag("status", file.fileStatus)
+                    .stringField("name", file.fileName)
+                    .stringField("mimeType", file.mimeType)
+                    .stringField("onDriveId", file.onDriveId)
+                    .intField("size", file.size)
+                    .intField("totalDownloadSize", file.totalDownloadSize)
+                    .intField("timesDownloaded", file.totalDownloadTimes)
+                    .timestamp(new Date());
+                pointsArray.push(point);
+            });
+        const influxDbService = new InfluxDbService();
+        influxDbService.writeApi.writePoints(pointsArray);
+    }
+
     selectCallbackFromQueue(payload: Payload): () => void {
         const topic = payload.topic;
 
@@ -156,6 +190,7 @@ export class Rabbit {
 
         const executeStoreReports = async () => {
             const reports = JSON.parse(payload.data as string);
+            this.sendSignals(reports);
             const accountsReport = JSON.stringify(reports.accountsReport);
             const filesReport = JSON.stringify(reports.filesReport);
             console.log(" [x] Received %s", "JSON Reports");
