@@ -30,13 +30,6 @@ router.post("/", upload.single("file"), (req, res, next) => {
         .catch(next);
 });
 
-router.post("/:id/upload", (req, res, next) => {
-    fileController
-        .uploadFile(req, res, next)
-        .then((response) => response)
-        .catch(next);
-});
-
 router.get("/search", async (req, res, next) => {
     fileController
         .findFilesByQuery(req, res, next)

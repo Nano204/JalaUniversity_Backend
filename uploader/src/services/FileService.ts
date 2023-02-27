@@ -2,50 +2,21 @@ import { Collection, GridFSBucket, ObjectId } from "mongodb";
 import fs from "fs";
 import { database, gridFSBucket } from "../database/DBSource";
 import { FileMapper } from "../database/mappers/FileMapper";
-import {
-    FileRequestInfo,
-    File,
-    FileEntity,
-    OnDriveFile,
-    FileQueryInfo,
-} from "../database/model/File";
-import AccountService from "./AccountService";
-import GoogleAPIService from "./googleapi/GoogleAPIService";
-import { AccountEntity } from "../database/model/Account";
+import { FileRequestInfo, File, FileEntity, FileQueryInfo } from "../database/model/File";
 import { Rabbit, TOPICS } from "./rabbitService/rabbit";
-import logger from "jet-logger";
-
-type ToDownloadRequest = {
-    file: FileEntity;
-    account: AccountEntity;
-    onDriveFile: OnDriveFile;
-};
-
-export type toDownloadObject = {
-    fileId: string;
-    name: string;
-    size: number;
-    mimeType: string;
-    accountId: string;
-    onDriveId: string;
-    webContentLink: string;
-};
+import env from "../env";
 
 export default class FileService {
     private collection: Collection;
-    private accountService: AccountService;
     private mapToDBEntity: FileMapper["toDBEntity"];
     private bucket: GridFSBucket;
     private tempFilePath: string;
-    private rabbitService: Rabbit;
 
     constructor() {
         this.collection = database.collection("file_entity");
-        this.accountService = new AccountService();
         this.mapToDBEntity = new FileMapper().toDBEntity;
         this.bucket = gridFSBucket;
-        this.tempFilePath = "./src/services/temp/outputFile";
-        this.rabbitService = new Rabbit();
+        this.tempFilePath = env.TEMPFILE_PATH as string;
     }
 
     async createNew(fileRequestInfo: FileRequestInfo) {
@@ -53,7 +24,8 @@ export default class FileService {
         const newFile = this.mapToDBEntity(file);
         const storedConfirmation = await this.collection.insertOne(newFile);
         const id = storedConfirmation.insertedId.toString();
-        await this.rabbitService.publishOnExchange(TOPICS.toUploadFileCreate, id);
+        const rabbitService = new Rabbit();
+        await rabbitService.publishOnExchange(TOPICS.toUploadFileCreate, id);
         return this.findById(id);
     }
 
@@ -86,12 +58,11 @@ export default class FileService {
             const _id = updatedConfirmation.value._id;
             const updatedFile = (await this.collection.findOne({ _id })) as FileEntity;
             if (file.name != updatedFile.name) {
-                await this.rabbitService.publishOnExchange(
+                const updatePayload = { id: updatedFile._id, ...updatedFile };
+                const rabbitService = new Rabbit();
+                await rabbitService.publishOnExchange(
                     TOPICS.sendToDownloadUpdateFile,
-                    {
-                        id: updatedFile._id,
-                        ...updatedFile,
-                    }
+                    updatePayload
                 );
             }
             return updatedFile;
@@ -100,28 +71,31 @@ export default class FileService {
     }
 
     async deleteById(id: string) {
-        await this.deleteFileFromAllDrives(id);
+        // await this.deleteFileFromAllDrives(id);
         const _id = new ObjectId(id);
         const document = await this.collection.findOne({ _id });
         if (document) {
             const _id = new ObjectId(document.tempDBReference);
             await this.bucket.delete(_id);
         }
-        await this.rabbitService.publishOnExchange(TOPICS.sendToDownloadDeleteFile, id);
+        const rabbitService = new Rabbit();
+        await rabbitService.publishOnExchange(TOPICS.sendToDownloadDeleteFile, id);
         return await this.collection.deleteOne({ _id });
     }
 
-    async downloadTempFileByReference(reference: string, cb: () => Promise<void>) {
+    async extractFileFromGridFSByReference(reference: string) {
         const _id = new ObjectId(reference);
         const document = await this.bucket.find({ _id }).toArray();
-        if (document.length) {
-            this.bucket
-                .openDownloadStream(_id)
-                .pipe(fs.createWriteStream(this.tempFilePath))
-                .once("finish", () => {
-                    cb();
-                });
-        }
+        await new Promise<void>((resolve) => {
+            if (document.length) {
+                this.bucket
+                    .openDownloadStream(_id)
+                    .pipe(fs.createWriteStream(this.tempFilePath))
+                    .once("finish", async () => {
+                        resolve();
+                    });
+            }
+        });
     }
 
     async deleteTempFile() {
@@ -130,143 +104,5 @@ export default class FileService {
                 throw err;
             }
         });
-    }
-
-    private async sendToDownloaderURI(toDownloadRequest: ToDownloadRequest) {
-        const { file, account, onDriveFile } = toDownloadRequest;
-        const accountId = account._id.toString();
-        const fileId = file._id.toString();
-        const toDownloadObject = {
-            fileId,
-            name: file.name,
-            size: file.size,
-            mimeType: file.mimeType,
-            accountId,
-            onDriveId: onDriveFile.onDriveId,
-            webContentLink: onDriveFile.webContentLink,
-        };
-        await this.rabbitService.publishOnExchange(
-            TOPICS.sendToDownloadCreateFile,
-            toDownloadObject
-        );
-        return toDownloadObject;
-    }
-
-    private async uploadTempFileToDrive(
-        account: AccountEntity,
-        file: FileEntity
-    ): Promise<OnDriveFile> {
-        const path = this.tempFilePath;
-        const googleAPIService = new GoogleAPIService(account.googleDriveKey);
-        const onlineFile = await googleAPIService.uploadFile({
-            ...file,
-            path,
-        });
-        if (onlineFile) {
-            const onDriveFile: OnDriveFile = {
-                accountId: account._id.toString(),
-                onDriveId: onlineFile.id,
-                webContentLink: onlineFile.webContentLink,
-            };
-            return onDriveFile;
-        }
-        throw new Error("Could not upload the file");
-    }
-
-    private async uploadTempFileToAllDrives(file: FileEntity): Promise<OnDriveFile[]> {
-        const accounts = await this.accountService.findAll();
-        const onDriveFileList: OnDriveFile[] = [];
-        for await (const account of accounts) {
-            const accountId = account._id.toString();
-            const condition = file.onDriveFile.some(
-                (onDriveInfo) => onDriveInfo.accountId == accountId
-            );
-            if (!condition) {
-                const onDriveFile = await this.uploadTempFileToDrive(account, file);
-                const toDownloadRequest = { file, account, onDriveFile };
-                await this.sendToDownloaderURI(toDownloadRequest);
-                onDriveFileList.push(onDriveFile);
-            }
-        }
-        await this.deleteTempFile();
-        await this.rabbitService.publishOnExchange(TOPICS.toExecuteCreate);
-        if (onDriveFileList && onDriveFileList.length) {
-            return onDriveFileList;
-        }
-        throw new Error("Could not upload the file");
-    }
-
-    public async allFilesfromGridFSToDrive(accountId: string) {
-        try {
-            const account = await this.accountService.findById(accountId);
-            const files = await this.findAll();
-            if (files.length) {
-                for await (const file of files) {
-                    const tempDBReference = file.tempDBReference.toString();
-                    const condition = file.onDriveFile.some(
-                        (onDriveInfo) => onDriveInfo.accountId == accountId
-                    );
-                    if (!condition) {
-                        await this.downloadTempFileByReference(
-                            tempDBReference,
-                            async () => {
-                                const onDriveFile = await this.uploadTempFileToDrive(
-                                    account,
-                                    file
-                                );
-                                const toDownloadRequest = { file, account, onDriveFile };
-                                await this.sendToDownloaderURI(toDownloadRequest);
-                                file.onDriveFile.push(onDriveFile);
-                                await this.update(file);
-                            }
-                        );
-                    }
-                }
-                await this.deleteTempFile();
-                await this.rabbitService.publishOnExchange(TOPICS.toExecuteCreate);
-            }
-        } catch (err) {
-            logger.imp(err, true);
-        }
-    }
-
-    public async fileFromGridFSToAllDrives(id: string) {
-        try {
-            const file = await this.findById(id);
-            if (file) {
-                const tempDBReference = file.tempDBReference.toString();
-                await this.downloadTempFileByReference(tempDBReference, async () => {
-                    file.onDriveFile = await this.uploadTempFileToAllDrives(file);
-                    file.status = "Uploaded";
-                    await this.update(file);
-                });
-            }
-        } catch (err) {
-            logger.imp(err, true);
-        }
-    }
-
-    private async deleteFileFromAllDrives(id: string) {
-        const _id = new ObjectId(id);
-        const file = await this.collection.findOne({ _id });
-        const onDriveFileList = file?.onDriveFile;
-        onDriveFileList?.map(async (onlineFileData: OnDriveFile) => {
-            const account = await this.accountService.findById(onlineFileData.accountId);
-            if (account) {
-                const googleAPIService = new GoogleAPIService(account.googleDriveKey);
-                googleAPIService.deleteFile(onlineFileData.onDriveId);
-            }
-        });
-    }
-
-    public async deleteReferencesFromAccount(account: AccountEntity) {
-        const files = await this.findAll();
-        const accountId = account._id.toString();
-        for await (const file of files) {
-            file.onDriveFile = file.onDriveFile.filter(
-                (onDriveReference) => onDriveReference.accountId != accountId
-            );
-            await this.update(file);
-        }
     }
 }

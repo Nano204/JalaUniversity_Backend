@@ -106,20 +106,4 @@ export default class FileController {
         }
         return res.status(200).json(deleted);
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async uploadFile(req: Request, res: Response, next: NextFunction) {
-        const { id } = req.params;
-        const objectIDLength = 24;
-        if (id.length != objectIDLength) {
-            throw new BadRequestException(
-                "Id passed in must be a string of 12 bytes or a string of 24 hex characters or an integer"
-            );
-        }
-        const uploadFile = await this.fileService.fileFromGridFSToAllDrives(id);
-        // if (!uploadFile) {
-        //     throw new NotFoundException();
-        // }
-        return res.status(200).json(uploadFile);
-    }
 }

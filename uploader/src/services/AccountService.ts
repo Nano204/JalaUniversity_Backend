@@ -8,20 +8,17 @@ import {
     CreateAccountRequestInfo,
 } from "../database/model/Account";
 import FileService from "./FileService";
-import GoogleAPIService from "./googleapi/GoogleAPIService";
 import { Rabbit, TOPICS } from "./rabbitService/rabbit";
 
 export default class AccountService {
     private collection: Collection;
     private mapToDBEntity: AccountMapper["toDBEntity"];
-    private rabbitService: Rabbit;
 
     constructor() {
         this.collection = database.collection("account_entity");
         this.collection.createIndex({ googleDriveKey: 1 }, { unique: true });
         this.collection.createIndex({ email: 1 }, { unique: true });
         this.mapToDBEntity = new AccountMapper().toDBEntity;
-        this.rabbitService = new Rabbit();
     }
 
     async createNew(accountRequestInfo: CreateAccountRequestInfo) {
@@ -29,7 +26,8 @@ export default class AccountService {
         const accountEntity = this.mapToDBEntity(account);
         const accountConfirm = await this.collection.insertOne(accountEntity);
         const accountId = accountConfirm.insertedId.toString();
-        await this.rabbitService.publishOnExchange(TOPICS.toUploadAccountCreate, accountId);
+        const rabbitService = new Rabbit();
+        await rabbitService.publishOnExchange(TOPICS.toUploadAccountCreate, accountId);
         return this.findById(accountId);
     }
 
@@ -62,21 +60,28 @@ export default class AccountService {
         throw new Error("Unexpected server error");
     }
 
-    async deleteAllFilesFromDrive(account: AccountEntity) {
-        const googleAPIService = new GoogleAPIService(account.googleDriveKey);
-        await googleAPIService.clearAccount();
+    public async deleteAccountReferencesForAllFiles(accountId: string) {
+        const fileService = new FileService();
+        const files = await fileService.findAll();
+        for await (const file of files) {
+            file.onDriveFile = file.onDriveFile.filter((onDriveReference) => {
+                if (onDriveReference && onDriveReference.accountId) {
+                    return onDriveReference.accountId != accountId;
+                } else {
+                    return false;
+                }
+            });
+            await fileService.update(file);
+        }
     }
 
     async deleteById(id: string) {
+        const rabbitService = new Rabbit();
         const account = await this.findById(id);
-        await this.deleteAllFilesFromDrive(account);
-        const fileService = new FileService();
-        fileService.deleteReferencesFromAccount(account);
         const _id = new ObjectId(id);
-        await this.rabbitService.publishOnExchange(
-            TOPICS.sendToDownloadDeleteAccount,
-            id
-        );
+        await this.deleteAccountReferencesForAllFiles(id);
+        await rabbitService.publishOnExchange(TOPICS.toUploadAccountDelete, account);
+        await rabbitService.publishOnExchange(TOPICS.sendToDownloadDeleteAccount, id);
         return await this.collection.deleteOne({ _id });
     }
 }

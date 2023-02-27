@@ -1,15 +1,15 @@
 import env from "../../env";
 import amqp from "amqplib";
-import FileService from "../FileService";
+import { OnDriveService } from "../OnDriveService";
+import { AccountEntity } from "../../database/model/Account";
 
 export const TOPICS = {
     toUploadFileCreate: "create.file.toQueue",
-    toUploadAccountCreate: "create.account.toQueue",
-    toUploadDelete: "delete.file.toQueue",
+    toUploadFileDelete: "delete.file.toQueue",
     toUploadUpdate: "update.file.toQueue",
-    toExecuteCreate: "create.execute",
-    toExecuteDelete: "delete.execute",
-    toExecuteUpdate: "update.execute",
+    toUploadAccountCreate: "create.account.toQueue",
+    toUploadAccountDelete: "delete.account.toQueue",
+    toExecuteOnQueue: "execute.queue",
     sendToDownloadCreateFile: "createFile.onDownloadMicroservice",
     sendToDownloadDeleteFile: "deteleFile.onDownloadMicroservice",
     sendToDownloadUpdateFile: "updateFile.onDownloadMicroservice",
@@ -23,6 +23,7 @@ export class Rabbit {
     private amqp;
     private amqpConnectionSetting;
     private static executionQueue: Array<() => void> = [];
+    private static state: "busy" | "awaiting" = "awaiting";
     private static exchange = "microservices_shared_exchange";
     constructor() {
         this.amqp = amqp;
@@ -68,11 +69,16 @@ export class Rabbit {
             channel,
             TOPICS.toUploadAccountCreate
         );
-        const toUploadDelete = await this.bindQueue(channel, TOPICS.toUploadDelete);
+        const toUploadFileDelete = await this.bindQueue(
+            channel,
+            TOPICS.toUploadFileDelete
+        );
+        const toUploadAccountDelete = await this.bindQueue(
+            channel,
+            TOPICS.toUploadAccountDelete
+        );
         const toUploadUpdate = await this.bindQueue(channel, TOPICS.toUploadUpdate);
-        const toExcecuteCreate = await this.bindQueue(channel, TOPICS.toExecuteCreate);
-        const toExcecuteDelete = await this.bindQueue(channel, TOPICS.toExecuteDelete);
-        const toExcecuteUpdate = await this.bindQueue(channel, TOPICS.toExecuteUpdate);
+        const toExecuteOnQueue = await this.bindQueue(channel, TOPICS.toExecuteOnQueue);
 
         console.log(
             " [*] Microservice: Uploader - Waiting for messages in %s. To exit press CTRL+C",
@@ -93,44 +99,61 @@ export class Rabbit {
 
         channel.consume(toUploadFileCreate, onMessage, { noAck: true });
         channel.consume(toUploadAccountCreate, onMessage, { noAck: true });
-        channel.consume(toUploadDelete, onMessage, { noAck: true });
+        channel.consume(toUploadFileDelete, onMessage, { noAck: true });
+        channel.consume(toUploadAccountDelete, onMessage, { noAck: true });
         channel.consume(toUploadUpdate, onMessage, { noAck: true });
-        channel.consume(toExcecuteCreate, onMessage, { noAck: true });
-        channel.consume(toExcecuteDelete, onMessage, { noAck: true });
-        channel.consume(toExcecuteUpdate, onMessage, { noAck: true });
+        channel.consume(toExecuteOnQueue, onMessage, { noAck: true });
     }
 
     selectCallbackFromQueue(payload: Payload): () => void {
         const topic = payload.topic;
+        const onPushArrive = () => {
+            console.log(Rabbit.state, Rabbit.executionQueue.length);
+            if (Rabbit.state == "awaiting" && Rabbit.executionQueue.length >= 1) {
+                Rabbit.state = "busy";
+                const task = Rabbit.executionQueue.shift() as () => void;
+                console.log(task);
+                task();
+            }
+        };
 
         const pushOnUploadToQueue = () => {
             const data = payload.data as string;
-            const fileService = new FileService();
-            const execution = () => fileService.fileFromGridFSToAllDrives(data);
-            Rabbit.executionQueue.push(execution);
-            console.log("Add function - ", Rabbit.executionQueue.length);
-            if (Rabbit.executionQueue.length == 1) {
-                Rabbit.executionQueue[0]();
-            }
+            const onDriveService = new OnDriveService();
+            const uploadToAllDrives = async () =>
+                await onDriveService.uploadFileToAllDrives(data);
+            Rabbit.executionQueue.push(uploadToAllDrives);
+            onPushArrive();
         };
 
         const pushOnCreateAccountToQueue = () => {
             const data = payload.data as string;
-            const fileService = new FileService();
-            const execution = () => fileService.allFilesfromGridFSToDrive(data);
-            Rabbit.executionQueue.push(execution);
-            console.log("Add function - ", Rabbit.executionQueue.length);
-            if (Rabbit.executionQueue.length == 1) {
-                Rabbit.executionQueue[0]();
-            }
+            const onDriveService = new OnDriveService();
+            const uploadAllFiles = async () =>
+                await onDriveService.allFilesfromGridFSToDrive(data);
+            Rabbit.executionQueue.push(uploadAllFiles);
+            onPushArrive();
         };
 
-        const executeNextUploadTask = () => {
+        const pushOnClearAccountToQueue = () => {
+            const account = payload.data as AccountEntity;
+            const onDriveService = new OnDriveService();
+            const deleteAllFiles = async () => {
+                await onDriveService.deleteAllFilesFromDriveAccount(account);
+            };
+            Rabbit.executionQueue.push(deleteAllFiles);
+            onPushArrive();
+        };
+
+        const executeNextTask = () => {
             console.log("Execute function - ", Rabbit.executionQueue.length);
-            Rabbit.executionQueue.shift();
             if (Rabbit.executionQueue.length) {
-                console.log(Rabbit.executionQueue[0].name);
-                Rabbit.executionQueue[0]();
+                const task = Rabbit.executionQueue.shift() as () => void;
+                task();
+                console.log(task.name, "-----------", Rabbit.executionQueue.length);
+            } else {
+                Rabbit.state = "awaiting";
+                console.log("Awaiting...");
             }
         };
 
@@ -139,8 +162,10 @@ export class Rabbit {
                 return pushOnUploadToQueue;
             case TOPICS.toUploadAccountCreate:
                 return pushOnCreateAccountToQueue;
-            case TOPICS.toExecuteCreate:
-                return executeNextUploadTask;
+            case TOPICS.toUploadAccountDelete:
+                return pushOnClearAccountToQueue;
+            case TOPICS.toExecuteOnQueue:
+                return executeNextTask;
             default:
                 return () => {
                     throw new Error("Not assigned queue");
